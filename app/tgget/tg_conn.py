@@ -613,17 +613,20 @@ class ConnMixin:
         except ValueError:
             if hasattr(client, "iter_dialogs"):
                 try:
-                    t_dl = time.time()
-                    async for d in client.iter_dialogs(limit=200):
-                        if time.time() - t_dl > 10.0:
-                            break
-                        ent = getattr(d, "entity", None)
-                        if ent is not None and isinstance(target, int):
-                            try:
-                                if utils.get_peer_id(ent) == target or getattr(ent, "id", None) == abs(target):
-                                    return ent
-                            except Exception:
-                                pass
+                    # 裸 iter_dialogs 网络半开时会挂起；用 wait_for 套 10s 超时（同 jobs.py/tg_media.py 策略），
+                    # 超时抛 TimeoutError，交给外层 _retry_disconnected 重连重试，绝不无限阻塞。
+                    async def _scan():
+                        async for d in client.iter_dialogs(limit=200):
+                            ent = getattr(d, "entity", None)
+                            if ent is not None and isinstance(target, int):
+                                try:
+                                    if utils.get_peer_id(ent) == target or getattr(ent, "id", None) == abs(target):
+                                        return ent
+                                except Exception:
+                                    pass
+                    found = await asyncio.wait_for(_scan(), timeout=10.0)
+                    if found is not None:
+                        return found
                 except Exception:
                     pass
             return await client.get_entity(target)

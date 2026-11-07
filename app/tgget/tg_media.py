@@ -74,49 +74,57 @@ class MediaMixin:
             me = None
         me_id = getattr(me, "id", None)
         has_saved = False
-        async for d in client.iter_dialogs(limit=None if q else limit):
-            title = d.name or ""
-            if q and q not in title.lower() and not (d.entity and getattr(d.entity, "username", "")):
-                continue
-            kind = "user"
-            if d.is_group:
-                kind = "group"
-            if d.is_channel:
-                kind = "channel"
-            # 「我的收藏」在 Telegram 里就是自己跟自己的对话，官方客户端才叫 Saved Messages，
-            # Telethon 这里返回的是用户自己的名字，必须显式识别并改名，否则用户根本认不出来。
-            is_self = me_id is not None and (
-                getattr(d.entity, "id", None) == me_id or d.id == me_id
-            )
-            if is_self:
-                has_saved = True
-                kind = "saved"
-            preview = ""
-            try:
-                if d.message is not None:
-                    preview = (d.message.message or "").strip().replace("\n", " ")[:60]
-                    if not preview and d.message.media:
-                        preview = _media_label(d.message.media)
-            except Exception:
+
+        # 裸 iter_dialogs 在网络半开时会无限挂起、阻塞整个事件循环（与 jobs.py 下载同类问题）。
+        # 用 wait_for 套一个 20s 超时（小于外层 loop.call 的 25s 兜底），超时抛 TimeoutError
+        # 交给 _retry_disconnected 重连重试，绝不无限阻塞。
+        async def _iter_dl():
+            nonlocal has_saved
+            async for d in client.iter_dialogs(limit=None if q else limit):
+                title = d.name or ""
+                if q and q not in title.lower() and not (d.entity and getattr(d.entity, "username", "")):
+                    continue
+                kind = "user"
+                if d.is_group:
+                    kind = "group"
+                if d.is_channel:
+                    kind = "channel"
+                # 「我的收藏」在 Telegram 里就是自己跟自己的对话，官方客户端才叫 Saved Messages，
+                # Telethon 这里返回的是用户自己的名字，必须显式识别并改名，否则用户根本认不出来。
+                is_self = me_id is not None and (
+                    getattr(d.entity, "id", None) == me_id or d.id == me_id
+                )
+                if is_self:
+                    has_saved = True
+                    kind = "saved"
                 preview = ""
-            out.append(
-                {
-                    "id": d.id,
-                    "peer": utils.get_peer_id(d.entity) if d.entity else d.id,
-                    "title": "我的收藏" if is_self else title,
-                    "username": getattr(d.entity, "username", None),
-                    "kind": kind,
-                    "unread": d.unread_count,
-                    "pinned": True if is_self else d.pinned,
-                    "date": int(d.date.timestamp()) if d.date else 0,
-                    "preview": preview or ("保存给自己的消息" if is_self else ""),
-                    # 有没有头像：前端据此决定要不要去 /api/avatar 拉图，
-                    # 没头像的对话就不发请求，省掉一堆 404
-                    "has_photo": bool(getattr(getattr(d.entity, "photo", None), "photo_id", None)),
-                }
-            )
-            if len(out) >= limit:
-                break
+                try:
+                    if d.message is not None:
+                        preview = (d.message.message or "").strip().replace("\n", " ")[:60]
+                        if not preview and d.message.media:
+                            preview = _media_label(d.message.media)
+                except Exception:
+                    preview = ""
+                out.append(
+                    {
+                        "id": d.id,
+                        "peer": utils.get_peer_id(d.entity) if d.entity else d.id,
+                        "title": "我的收藏" if is_self else title,
+                        "username": getattr(d.entity, "username", None),
+                        "kind": kind,
+                        "unread": d.unread_count,
+                        "pinned": True if is_self else d.pinned,
+                        "date": int(d.date.timestamp()) if d.date else 0,
+                        "preview": preview or ("保存给自己的消息" if is_self else ""),
+                        # 有没有头像：前端据此决定要不要去 /api/avatar 拉图，
+                        # 没头像的对话就不发请求，省掉一堆 404
+                        "has_photo": bool(getattr(getattr(d.entity, "photo", None), "photo_id", None)),
+                    }
+                )
+                if len(out) >= limit:
+                    break
+
+        await asyncio.wait_for(_iter_dl(), timeout=20.0)
         # 有的账号（比如从未用过收藏夹）不会在对话列表里出现这一项，补一条进去，
         # 否则用户永远找不到自己的收藏。
         if me_id is not None and not has_saved:
@@ -540,30 +548,35 @@ class MediaMixin:
                     skip_first = begin - aligned_begin
                     n_chunks = math.ceil((remaining + skip_first) / req) + 1 if remaining > 0 else None
                     try:
-                        async for piece in client.iter_download(
-                            m, offset=aligned_begin, limit=n_chunks, request_size=req
-                        ):
-                            if stop.is_set():
-                                return
-                            if skip_first > 0:
-                                if len(piece) <= skip_first:
-                                    skip_first -= len(piece)
-                                    continue
-                                piece = piece[skip_first:]
-                                skip_first = 0
-                            if remaining > 0:
-                                piece = piece[:remaining]
-                                remaining -= len(piece)
-                            if piece:
-                                begin += len(piece)
-                                while not stop.is_set():
-                                    try:
-                                        q.put(piece, timeout=0.5)
-                                        break
-                                    except queue.Full:
+                        # 单块 getFile 网络半开时 iter_download 也会挂起；套 30s 超时，
+                        # 超时抛 TimeoutError 走下方 except 重试，绝不无限阻塞。
+                        async def _pull():
+                            nonlocal begin, remaining, skip_first
+                            async for piece in client.iter_download(
+                                m, offset=aligned_begin, limit=n_chunks, request_size=req
+                            ):
+                                if stop.is_set():
+                                    return
+                                if skip_first > 0:
+                                    if len(piece) <= skip_first:
+                                        skip_first -= len(piece)
                                         continue
-                            if remaining == 0:
-                                return
+                                    piece = piece[skip_first:]
+                                    skip_first = 0
+                                if remaining > 0:
+                                    piece = piece[:remaining]
+                                    remaining -= len(piece)
+                                if piece:
+                                    begin += len(piece)
+                                    while not stop.is_set():
+                                        try:
+                                            q.put(piece, timeout=0.5)
+                                            break
+                                        except queue.Full:
+                                            continue
+                                if remaining == 0:
+                                    return
+                        await asyncio.wait_for(_pull(), timeout=30.0)
                         return
                     except asyncio.CancelledError:
                         async with lock:

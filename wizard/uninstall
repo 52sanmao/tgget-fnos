@@ -1,0 +1,17 @@
+[
+  {
+    "stepTitle": "卸载选项",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "是否同时清除 tgget 的应用数据？清除内容仅包括：Telegram 登录会话、下载/任务记录、本地数据库、缩略图与头像缓存、运行日志。你下载到共享目录（文件管理器可见）里的媒体文件不会被删除。"
+      },
+      {
+        "type": "switch",
+        "field": "wizard_clear_data",
+        "label": "同时删除应用数据（会话、记录、缓存等）",
+        "initValue": false
+      }
+    ]
+  }
+]

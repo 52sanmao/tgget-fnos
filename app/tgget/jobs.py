@@ -803,26 +803,36 @@ class Downloader:
                         except Exception:
                             pass
             elif mode == "all" or int(job.get("limit") or 0) <= 0:
-                async for m in c.iter_messages(entity, limit=None):
-                    if is_cancelled():
-                        raise asyncio.CancelledError("任务已取消")
-                    out.append(m)
-            elif mode == "new":
-                if min_id > 0:
-                    async for m in c.iter_messages(entity, limit=None, min_id=min_id):
-                        if is_cancelled():
-                            raise asyncio.CancelledError("任务已取消")
-                        out.append(m)
-                else:
+                # 裸 iter_messages 在网络半开时会无限挂起、阻塞整个事件循环，
+                # 导致本应毫秒级完成的本地读取也排队卡住（前端「正在读取…」一直转圈）。
+                # 用 wait_for 套一个 30s 超时，超时抛 TimeoutError 交给上层重连/报错，
+                # 绝不无限阻塞（与 tg_media.py / tg_actions.py 同策略）。
+                async def _iter_all():
                     async for m in c.iter_messages(entity, limit=None):
                         if is_cancelled():
                             raise asyncio.CancelledError("任务已取消")
                         out.append(m)
+                await asyncio.wait_for(_iter_all(), timeout=30.0)
+            elif mode == "new":
+                async def _iter_new():
+                    if min_id > 0:
+                        async for m in c.iter_messages(entity, limit=None, min_id=min_id):
+                            if is_cancelled():
+                                raise asyncio.CancelledError("任务已取消")
+                            out.append(m)
+                    else:
+                        async for m in c.iter_messages(entity, limit=None):
+                            if is_cancelled():
+                                raise asyncio.CancelledError("任务已取消")
+                            out.append(m)
+                await asyncio.wait_for(_iter_new(), timeout=30.0)
             else:
-                async for m in c.iter_messages(entity, limit=int(job["limit"])):
-                    if is_cancelled():
-                        raise asyncio.CancelledError("任务已取消")
-                    out.append(m)
+                async def _iter_limit():
+                    async for m in c.iter_messages(entity, limit=int(job["limit"])):
+                        if is_cancelled():
+                            raise asyncio.CancelledError("任务已取消")
+                        out.append(m)
+                await asyncio.wait_for(_iter_limit(), timeout=30.0)
             return c, out
 
         messages = []

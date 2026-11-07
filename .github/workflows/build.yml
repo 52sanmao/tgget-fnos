@@ -47,7 +47,7 @@ jobs:
                       cmd/upgrade_init cmd/upgrade_callback \
                       cmd/uninstall_init cmd/uninstall_callback \
                       cmd/config_init cmd/config_callback \
-                      wizard/install; do
+                      wizard/install wizard/uninstall; do
             grep -qx "$must" /tmp/actual.txt || { echo "缺少 $must"; exit 1; }
           done
 

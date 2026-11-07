@@ -1,6 +1,26 @@
 #!/bin/bash
-# 卸载前执行：停掉运行中的服务
-if [ -x "${TRIM_APPDEST}/../cmd/main" ]; then
-  "${TRIM_APPDEST}/../cmd/main" stop 2>/dev/null || true
+# 卸载前执行：
+# 1) 停掉运行中的服务；
+# 2) 若用户在卸载向导里勾选了「同时删除应用数据」，则清除 TRIM_PKGVAR 下的应用私有数据
+#    （Telegram 登录会话、下载/任务记录、本地数据库、缩略图/头像缓存、运行日志）。
+#    注意：只删应用自身数据，绝不触碰用户下载到共享目录（TRIM_DATA_SHARE_PATHS）的媒体文件。
+
+# 1. 停止服务
+if [ -x "${TRIM_APPDEST}/cmd/main" ]; then
+  "${TRIM_APPDEST}/cmd/main" stop 2>/dev/null || true
 fi
+
+# 2. 按开关清除数据。向导字段以同名环境变量传入（见 wizard/uninstall）。
+case "${wizard_clear_data:-}" in
+  true|1|yes|on|TRUE|True)
+    if [ -n "${TRIM_PKGVAR}" ] && [ -d "${TRIM_PKGVAR}" ]; then
+      # 只删除目录内容，保留目录本身（框架可能还会用到）
+      rm -rf "${TRIM_PKGVAR:?}"/* 2>/dev/null || true
+    fi
+    ;;
+  *)
+    # 默认保留数据
+    ;;
+esac
+
 exit 0
