@@ -769,7 +769,15 @@ class Downloader:
         else:
             self._set_step(job, "resolve", "解析对话成功", "done", f"对话：{job['title'] or job['peer']}")
 
+        # 对话解析成功后任务就算「进行中」了，别等到下载阶段才改 state ——
+        # 否则大批量任务在 fetch（读取消息列表）阶段会一直显示灰色「待执行」，
+        # 与 stage 里「正在读取消息列表」自相矛盾。
+        if job.get("state") == "queued":
+            job["state"] = "running"
+
         self._set_step(job, "fetch", "正在读取消息列表", "running")
+        # 记录 fetch 阶段因「问题消息」被跳过的 id 数，结束后写进 note 提示用户
+        skip_box = [0]
 
         async def _fetch_msgs():
             c = await self.tg._ensure()
@@ -777,22 +785,39 @@ class Downloader:
             if ids:
                 # 大批量勾选下载（如一次勾 1000+ 条）时，单次 get_messages(entity, ids=全部)
                 # 会让 Telethon 拆成多批 getMessages 连续发，但 _call_rpc 的 15s 超时是罩在
-                # 「整次 get_messages」外面的一次性总超时——批数一多必超时，任务直接报
-                # 「Telegram 请求响应超时（>15s 无响应）」。
-                # 修复：按 100 个 id 一批，每批独立 get_messages + 独立 15s 超时，拉完合并。
-                CHUNK = 100
+                # 「整次 get_messages」外面的一次性总超时——批数一多必超时。
+                #
+                # 更隐蔽的坑（NAS 实测定位）：这些 id 里混有「问题消息」（已删除/跨 DC/服务端
+                # 慢响应），只要一个 batch 里混入 1 条，整批 getMessages 就会卡死超时。实测某
+                # 频道 1064 条连续 id 里有 6 段问题区间（约 120 条），100 个一批时批 3 必卡死。
+                #
+                # 修复策略：
+                # 1) 小批次（20 个一批），把「一颗老鼠屎坏一锅汤」的影响面降到最小；
+                # 2) 单批超时后「跳过该批、继续下一批」，绝不因少数坏消息拖垮整个 fetch。
+                CHUNK = 20
+                skipped = 0
                 out = []
-                for k in range(0, len(ids), CHUNK):
+                total_ids = len(ids)
+                for k in range(0, total_ids, CHUNK):
                     if is_cancelled():
                         raise asyncio.CancelledError("任务已取消")
                     batch = ids[k:k + CHUNK]
-                    if hasattr(self.tg, "_call_rpc"):
-                        fetched = await self.tg._call_rpc(c.get_messages(entity, ids=batch), timeout=15.0, check_cancel=is_cancelled)
-                    else:
-                        fetched = await c.get_messages(entity, ids=batch)
-                    if not isinstance(fetched, list):
-                        fetched = [fetched]
-                    out.extend(m for m in (fetched or []) if m is not None)
+                    try:
+                        if hasattr(self.tg, "_call_rpc"):
+                            fetched = await self.tg._call_rpc(c.get_messages(entity, ids=batch), timeout=15.0, check_cancel=is_cancelled)
+                        else:
+                            fetched = await c.get_messages(entity, ids=batch)
+                        if not isinstance(fetched, list):
+                            fetched = [fetched]
+                        out.extend(m for m in (fetched or []) if m is not None)
+                    except (TimeoutError, asyncio.TimeoutError):
+                        # 这批里混有「问题消息」导致服务端慢响应：跳过这批，别让少数坏消息拖垮整个任务。
+                        skipped += len(batch)
+                        skip_box[0] = skipped
+                        continue
+                    # 分批拉取时给前端一点进度反馈（批量任务 fetch 可能持续几十秒）
+                    done_ids = min(k + CHUNK, total_ids)
+                    job["stage"] = f"正在读取消息 {done_ids}/{total_ids}"
                 # 链接下载相册自动扩选：当用户粘贴单条消息链接（如受限频道的多视频/多图相册链接），
                 # 且未带 ?single 参数时，自动把同一 grouped_id 的整组相册媒体一并拉下来。
                 if link_id and len(ids) == 1 and "?single" not in str(job.get("peer") or "").lower() and out:
@@ -882,7 +907,12 @@ class Downloader:
             self.bus.emit("job", public(job))
             self._persist()
             return
-        self._set_step(job, "fetch", "读取消息列表完成", "done", f"共扫描到 {len(targets)} 个媒体文件")
+        fetch_note = f"共扫描到 {len(targets)} 个媒体文件"
+        if skip_box[0] > 0:
+            fetch_note += f"（{skip_box[0]} 条消息请求超时，已跳过）"
+        self._set_step(job, "fetch", "读取消息列表完成", "done", fetch_note)
+        if skip_box[0] > 0:
+            job["note"] = f"有 {skip_box[0]} 条消息请求超时被跳过（可能是已删除或服务端慢响应），不影响其余文件下载。"
 
         outdir = Path(job["outdir"]).expanduser()
         outdir.mkdir(parents=True, exist_ok=True)

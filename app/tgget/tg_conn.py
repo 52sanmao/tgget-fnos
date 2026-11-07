@@ -193,7 +193,7 @@ class ConnMixin:
                 # 优先在原客户端实例上重连，避免丢弃实例后重复打开同一个 session.session 引发锁冲突
                 try:
                     self._harden_session(self.client)
-                    await self.client.connect()
+                    await asyncio.wait_for(self.client.connect(), timeout=15.0)
                     if self.client.is_connected():
                         return self.client
                 except Exception:
@@ -220,7 +220,7 @@ class ConnMixin:
                 Path(self.cfg.session).parent.mkdir(parents=True, exist_ok=True)
                 client = TelegramClient(self.cfg.session, self.cfg.api_id, self.cfg.api_hash, **kwargs)
             self._harden_session(client)
-            await client.connect()
+            await asyncio.wait_for(client.connect(), timeout=15.0)
             self._harden_session(client)
             self.client = client
         self.emit("state", await self._state())
