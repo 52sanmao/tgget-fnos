@@ -62,7 +62,7 @@ jobs:
 
       - name: 检查 app.tgz 内包含运行文件
         run: |
-          mkdir -p /tmp/app && tar -xzf tgget.fpk app.tgz -C /tmp/app
+          mkdir -p /tmp/app && tar -xzf tgget.fpk -C /tmp/app app.tgz
           tar -tzf /tmp/app/app.tgz | sort > /tmp/appfiles.txt
           for must in run.py requirements.txt tgget/config.py \
                       tgget/tg.py tgget/tg_conn.py tgget/tg_media.py \
