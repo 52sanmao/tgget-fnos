@@ -18,6 +18,6 @@ service_port=64780
 checkport=true
 
 ctl_stop=true
-disable_authorization_path=true
+disable_authorization_path=false
 
 changelog=模块化重构 + 修复下载取消/分片空洞，支持断点续传与自动重试。

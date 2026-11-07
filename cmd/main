@@ -51,8 +51,13 @@ start_app() {
   ensure_venv || return 1
   log_msg "启动 ${APP_NAME}..."
 
-  # 下载目录落到共享目录（文件管理器可见）；数据目录落到 TRIM_PKGVAR
-  SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+  # 下载目录优先用「用户在应用设置里授权的目录」（系统文件选择器选中的文件夹，
+  # 通过 TRIM_DATA_ACCESSIBLE_PATHS 注入，: 分隔取第一个）；没有授权则回落到
+  # 共享目录（TRIM_DATA_SHARE_PATHS，文件管理器可见）；再没有就退回应用数据目录。
+  SHARE_DIR="${TRIM_DATA_ACCESSIBLE_PATHS%%:*}"
+  if [ -z "$SHARE_DIR" ]; then
+    SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+  fi
   if [ -z "$SHARE_DIR" ]; then
     SHARE_DIR="${DATA_DIR}/downloads"
   fi

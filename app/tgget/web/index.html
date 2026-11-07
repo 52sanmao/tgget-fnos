@@ -301,6 +301,21 @@ html.dark .steprow.error .st-ic{background:#7f1d1d;color:#f87171}
 .toast.show{opacity:.94}
 .logbox{font:10px/1.6 ui-monospace,Consolas,monospace;color:var(--text2);background:var(--bg3);border:1px solid var(--line);border-radius:2px;padding:6px;max-height:78px;overflow:auto;margin-top:8px;white-space:pre-wrap}
 
+/* 保存目标文件夹：目录浏览选择器 */
+.browse-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.browse-head .btn{flex:none}
+.browse-path{flex:1;font-size:11px;color:var(--text2);word-break:break-all;line-height:1.5}
+.browse-list{border:1px solid var(--line);border-radius:3px;max-height:280px;overflow:auto;background:var(--bg3)}
+.browse-row{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--line);font-size:12px;color:var(--text)}
+.browse-row:last-child{border-bottom:0}
+.browse-row:hover{background:var(--soft)}
+.browse-ic{flex:none;width:16px;height:16px;color:#b45309;display:grid;place-items:center}
+.browse-ic svg{width:100%;height:100%}
+.browse-name{flex:1;word-break:break-all;line-height:1.4}
+.crumb{color:var(--accent);cursor:pointer;font-size:11px}
+.crumb:hover{text-decoration:underline}
+.crumbSep{color:var(--text3);margin:0 2px;font-size:11px}
+
 /* 视图切换胶囊（媒体 / 消息） */
 .caps{display:inline-flex;background:var(--bg2);border-radius:999px;padding:2px;gap:2px;flex:none;border:1px solid var(--line)}
 .caps button{border:0;background:transparent;border-radius:999px;height:17px;padding:0 7px;font-size:10px;line-height:17px;color:var(--text2);cursor:pointer;white-space:nowrap}
@@ -3131,8 +3146,11 @@ function openSettings(focus) {
     + '<div class="field-row">'
     + '<div class="field" style="flex:1"><label>用户名（可选）</label><input class="inp" id="stUser" value="' + esc(user) + '"></div>'
     + '<div class="field" style="flex:1"><label>密码（可选）</label><input class="inp" id="stPass" type="password" value="' + esc(pass) + '"></div></div></div>'
-    + '<div class="field" id="fldDir"><label>保存目标文件夹</label><input class="inp" id="stDir" value="' + esc(c.download_dir || '') + '" placeholder="例如 /vol1/1000/tgget">'
-    + '<div class="tip">下载的图片、视频、文件都会保存到这个目录。NAS 上可以填挂载盘路径，例如 <code>/vol1/1000/tgget</code>。</div></div>'
+    + '<div class="field" id="fldDir"><label>保存目标文件夹</label>'
+    + '<div style="display:flex;gap:6px;align-items:center">'
+    + '<input class="inp" id="stDir" style="flex:1" value="' + esc(c.download_dir || '') + '" placeholder="例如 /vol1/1000/tgget">'
+    + '<button class="btn" id="stBrowse">浏览…</button></div>'
+    + '<div class="tip">下载的图片、视频、文件都会保存到这个目录。点击「浏览…」可在已授权的目录里逐级选择子文件夹；NAS 上也可直接填挂载盘路径，例如 <code>/vol1/1000/tgget</code>。</div></div>'
     + '<div class="field" id="fldArchive"><label>「我的收藏」气泡转发目标群 ID</label>'
     + '<input class="inp" id="stArchivePeer" value="' + esc(c.archive_peer || resolveArchiveTarget().peer || '') + '" placeholder="例如 -1003853398035（留空将自动匹配「春风春色」）">'
     + '<div class="tip">在「我的收藏」消息视图点击气泡右侧「转发」时，将通过<b>下载+重新上传（保留原文字与样式）</b>发往该群组 ID，随后自动把已下载文件移入该群目录并清理我的收藏。使用数字 ID 不怕群改名。</div></div>'
@@ -3195,6 +3213,10 @@ function openSettings(focus) {
     var auth = $('#stUser').value ? decodeURIComponent(encodeURIComponent($('#stUser').value)) + ':' + encodeURIComponent($('#stPass').value) + '@' : '';
     return cur + '://' + auth + h + ':' + pt;
   }
+  // 保存目标文件夹「浏览…」：打开目录选择弹窗，可逐级进入子目录
+  $('#stBrowse').addEventListener('click', function () {
+    openBrowseDir(function (p) { $('#stDir').value = p; });
+  });
   $('#stTest').addEventListener('click', function () {
     $('#stTestBox').textContent = '正在测试…';
     api('net.test', { proxy: buildProxy() }).then(function (d) {
@@ -3227,6 +3249,81 @@ function openSettings(focus) {
       closeDlg(); toast('设置已保存'); refreshStatus();
     }).catch(function (e) { toast(e.message); });
   });
+}
+
+/* ---------------- 保存目标文件夹：浏览选择器 ---------------- */
+function openBrowseDir(onPick) {
+  var state = { path: '', parent: null, dirs: [], roots: [] };
+
+  function render() {
+    var crumbs = state.path ? state.path.split('/').filter(Boolean) : [];
+    var crumbHtml = crumbs.length
+      ? crumbs.map(function (seg, i) {
+          var p = '/' + crumbs.slice(0, i + 1).join('/');
+          return '<a class="crumb" data-p="' + esc(p) + '">' + esc(seg) + '</a>';
+        }).join('<span class="crumbSep">/</span>')
+      : '';
+    var rootSel = state.roots.length > 1
+      ? '<div class="field" style="margin-bottom:8px"><label>选择授权根目录</label><select class="inp" id="brRoot">'
+        + state.roots.map(function (r) {
+            return '<option value="' + esc(r) + '"' + (r === state.path ? ' selected' : '') + '>' + esc(r) + '</option>';
+          }).join('') + '</select></div>'
+      : '';
+
+    var rows = state.dirs.map(function (d) {
+      return '<div class="browse-row" data-p="' + esc(d.path) + '">'
+        + '<span class="browse-ic">' + I.file + '</span>'
+        + '<span class="browse-name">' + esc(d.name) + '</span></div>';
+    }).join('');
+
+    var body = '<div class="browse-head">'
+      + '<button class="btn" id="brUp"' + (state.parent ? '' : ' disabled') + '>↑ 上级</button>'
+      + '<span class="browse-path">' + esc(state.path || '（选择一个目录）') + '</span>'
+      + '</div>'
+      + rootSel
+      + '<div class="browse-list">'
+      + (rows || '<div class="muted" style="padding:12px">没有子文件夹</div>')
+      + '</div>';
+
+    $('#dlgTitle').textContent = '选择保存文件夹';
+    $('#dlgBody').innerHTML = body;
+    $('#dlgFoot').innerHTML = '<button class="btn" onclick="closeDlg()">取消</button>'
+      + '<button class="btn primary" id="brPick">使用此文件夹</button>';
+    $('#dlg').classList.remove('wide');
+    $('#mask').classList.add('show');
+
+    // 面包屑跳转
+    $$('.crumb').forEach(function (a) {
+      a.addEventListener('click', function () { load(a.dataset.p); });
+    });
+    // 上级
+    $('#brUp').addEventListener('click', function () { if (state.parent) load(state.parent); });
+    // 根切换
+    if ($('#brRoot')) $('#brRoot').addEventListener('change', function () { load(this.value); });
+    // 子目录进入
+    $$('.browse-row').forEach(function (r) {
+      r.addEventListener('click', function () { load(r.dataset.p); });
+    });
+    // 确认
+    $('#brPick').addEventListener('click', function () {
+      var p = state.path || (state.roots[0] || '');
+      if (!p) { toast('请先选择一个目录'); return; }
+      closeDlg();
+      if (onPick) onPick(p);
+      toast('已选择：' + p);
+    });
+  }
+
+  function load(p) {
+    api('files.browse', { path: p || '' }).then(function (d) {
+      state.path = d.path; state.parent = d.parent; state.dirs = d.dirs; state.roots = d.roots || [];
+      render();
+    }).catch(function (e) { toast(e.message); });
+  }
+
+  // 用当前输入框里已有的路径作为起点
+  var startPath = $('#stDir') ? $('#stDir').value.trim() : '';
+  load(startPath);
 }
 
 function openLogin() {

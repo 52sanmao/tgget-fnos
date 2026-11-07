@@ -80,6 +80,8 @@ class Api:
             "auto.run": lambda p: self.auto.run_now(str(p.get("id", ""))),
             # 磁盘信息与持久化日志
             "files.disk": lambda p: self.files.disk(),
+            "files.browse": lambda p: self.files.browse(str(p.get("path", "") or "")),
+            "files.roots": lambda p: {"roots": self.files.browse_roots()},
             "dialog.progress": self.dialog_progress,
             "log.list": self.log_list,
             "log.clear": lambda p: {"removed": DB.clear_logs()},

@@ -22,8 +22,16 @@ def _default_home() -> Path:
 
 
 def _default_download_dir() -> Path:
-    # 飞牛 fnOS：优先落到 config/resource 声明的共享目录（TRIM_DATA_SHARE_PATHS
-    # 用 : 分隔，取第一个），这样下载结果在文件管理器里直接可见。
+    # 飞牛 fnOS：最优先落到「用户在应用设置里授权的目录」（TRIM_DATA_ACCESSIBLE_PATHS，
+    # 用 : 分隔，取第一个）——用户通过系统文件选择器浏览选中的文件夹，下载内容
+    # 直接落在用户指定位置，而不是困在应用内部。
+    accessible = os.environ.get("TRIM_DATA_ACCESSIBLE_PATHS")
+    if accessible:
+        first = accessible.split(":")[0].strip()
+        if first:
+            return Path(first)
+    # 其次落到 config/resource 声明的共享目录（TRIM_DATA_SHARE_PATHS，: 分隔取第一个），
+    # 这样下载结果在文件管理器里直接可见。
     share = os.environ.get("TRIM_DATA_SHARE_PATHS")
     if share:
         first = share.split(":")[0].strip()
