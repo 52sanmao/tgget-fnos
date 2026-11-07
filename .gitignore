@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.fpk
+.cache/
+dist/
+.venv/
+.DS_Store

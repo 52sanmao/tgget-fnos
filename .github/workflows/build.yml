@@ -1,0 +1,79 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 语法检查 / Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: 语法检查
+        run: python -m compileall -q app/tgget app/run.py
+
+  fpk:
+    name: 打包 fpk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 这一步会在 Linux 上跑通完整的 fnpack 打包链路，
+      # 顺带验证 cmd/ 脚本语法、LF 换行、manifest 与 config 的格式
+      - name: fnpack build
+        run: bash tools/build_fpk.sh
+
+      - name: 检查产物结构
+        run: |
+          test -f tgget.fpk
+          tar -tzf tgget.fpk | sort > /tmp/actual.txt
+          cat /tmp/actual.txt
+          for must in manifest ICON.PNG ICON_256.PNG app.tgz \
+                      config/privilege config/resource \
+                      cmd/main cmd/install_init cmd/install_callback \
+                      cmd/upgrade_init cmd/upgrade_callback \
+                      cmd/uninstall_init cmd/uninstall_callback \
+                      cmd/config_init cmd/config_callback \
+                      wizard/install; do
+            grep -qx "$must" /tmp/actual.txt || { echo "缺少 $must"; exit 1; }
+          done
+
+      - name: 检查脚本权限与换行
+        run: |
+          mkdir -p /tmp/x && tar -xzf tgget.fpk -C /tmp/x
+          for f in /tmp/x/cmd/*; do
+            test -x "$f" || { echo "$f 没有可执行位"; exit 1; }
+            if grep -q $'\r' "$f"; then echo "$f 含 CRLF"; exit 1; fi
+          done
+          echo "全部可执行且为 LF"
+
+      - name: 检查 app.tgz 内包含运行文件
+        run: |
+          mkdir -p /tmp/app && tar -xzf tgget.fpk app.tgz -C /tmp/app
+          tar -tzf /tmp/app/app.tgz | sort > /tmp/appfiles.txt
+          for must in run.py requirements.txt tgget/config.py \
+                      tgget/tg.py tgget/tg_conn.py tgget/tg_media.py \
+                      tgget/tg_actions.py tgget/tg_downloader.py tgget/tg_utils.py \
+                      tgget/web/index.html ui/config; do
+            grep -q "$must" /tmp/appfiles.txt || { echo "app.tgz 缺少 $must"; exit 1; }
+          done
+          echo "app.tgz 运行文件完整"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tgget-fpk
+          path: tgget.fpk
+          if-no-files-found: error

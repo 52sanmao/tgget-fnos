@@ -1,0 +1,7 @@
+#!/bin/bash
+# 配置变更应用后执行：重启服务以应用新配置
+if [ -x "$(dirname "$0")/main" ]; then
+  "$(dirname "$0")/main" stop 2>/dev/null || true
+  "$(dirname "$0")/main" start 2>/dev/null || true
+fi
+exit 0

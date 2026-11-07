@@ -1,0 +1,4 @@
+#!/bin/bash
+# 安装文件应用前执行：创建数据/日志目录
+mkdir -p "${TRIM_PKGVAR}" 2>/dev/null || true
+exit 0

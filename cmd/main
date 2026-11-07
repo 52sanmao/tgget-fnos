@@ -1,0 +1,130 @@
+#!/bin/bash
+# tgget 生命周期脚本：start / stop / status
+# 飞牛 fnOS 会以 $1 传入操作名，退出码 0=成功/运行中，3=未运行，1=失败。
+
+APP_NAME="tgget"
+APP_DIR="${TRIM_APPDEST}"           # 安装后的 target 目录（含 run.py、tgget/、requirements.txt）
+VENV_DIR="${TRIM_PKGVAR}/.venv"     # Python 虚拟环境（放数据目录，跨重启保留）
+DATA_DIR="${TRIM_PKGVAR}"           # 运行时数据（config.json、session、tgget.db）
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+LOG_FILE="${TRIM_PKGVAR}/app.log"
+PYTHON_BIN="/var/apps/python312/target/bin/python3"
+
+log_msg() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+# 准备虚拟环境：首次启动时用 python312 建 venv 并装依赖，之后复用
+ensure_venv() {
+  if [ ! -x "${VENV_DIR}/bin/python" ]; then
+    log_msg "首次启动：创建虚拟环境并安装依赖..."
+    "${PYTHON_BIN}" -m venv "${VENV_DIR}" >> "$LOG_FILE" 2>&1 || {
+      echo "无法创建 Python 虚拟环境（python312 运行时不可用）。" > "$TRIM_TEMP_LOGFILE"
+      return 1
+    }
+    "${VENV_DIR}/bin/pip" install --no-cache-dir -r "${APP_DIR}/requirements.txt" >> "$LOG_FILE" 2>&1 || {
+      echo "依赖安装失败，请检查网络后重试。" > "$TRIM_TEMP_LOGFILE"
+      return 1
+    }
+    log_msg "虚拟环境与依赖就绪。"
+  fi
+  return 0
+}
+
+status_app() {
+  if [ -f "$PID_FILE" ]; then
+    local pid
+    pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+    rm -f "$PID_FILE"
+  fi
+  return 1
+}
+
+start_app() {
+  if status_app; then
+    return 0
+  fi
+
+  ensure_venv || return 1
+  log_msg "启动 ${APP_NAME}..."
+
+  # 下载目录落到共享目录（文件管理器可见）；数据目录落到 TRIM_PKGVAR
+  SHARE_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+  if [ -z "$SHARE_DIR" ]; then
+    SHARE_DIR="${DATA_DIR}/downloads"
+  fi
+  mkdir -p "${SHARE_DIR}" "$DATA_DIR" 2>/dev/null || true
+
+  cd "$APP_DIR" || return 1
+
+  # 环境变量注入（供 config.py 读取）
+  export TG_HOME="${DATA_DIR}"
+  export TGGET_DIR="${SHARE_DIR}"
+  export TGGET_PORT="${TRIM_SERVICE_PORT:-64780}"
+  # 安装向导收集的可选凭据（wizard_ 前缀，无 TRIM_ 前缀）
+  [ -n "$wizard_api_id" ]   && export TG_API_ID="$wizard_api_id"
+  [ -n "$wizard_api_hash" ] && export TG_API_HASH="$wizard_api_hash"
+  [ -n "$wizard_token" ]    && export TGGET_TOKEN="$wizard_token"
+
+  # 若生命周期脚本以 root 运行，降权到专用包用户
+  local RUN_PREFIX=""
+  if [ "$(id -u)" = "0" ] && [ -n "$TRIM_USERNAME" ]; then
+    RUN_PREFIX="runuser -u $TRIM_USERNAME --"
+  fi
+
+  $RUN_PREFIX "${VENV_DIR}/bin/python" run.py serve \
+    --no-browser \
+    --host 0.0.0.0 \
+    --port "${TRIM_SERVICE_PORT:-64780}" \
+    --dir "${SHARE_DIR}" >> "$LOG_FILE" 2>&1 &
+
+  echo "$!" > "$PID_FILE"
+  log_msg "已启动，PID=$(cat "$PID_FILE")，端口=${TRIM_SERVICE_PORT:-64780}，下载目录=${SHARE_DIR}"
+  return 0
+}
+
+stop_app() {
+  log_msg "停止 ${APP_NAME}..."
+  if [ ! -f "$PID_FILE" ]; then
+    return 0
+  fi
+  local pid
+  pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+  if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then
+    rm -f "$PID_FILE"
+    return 0
+  fi
+  kill -TERM "$pid" 2>> "$LOG_FILE" || true
+  local count=0
+  while kill -0 "$pid" 2>/dev/null && [ "$count" -lt 10 ]; do
+    sleep 1
+    count=$((count + 1))
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -KILL "$pid" 2>> "$LOG_FILE" || true
+  fi
+  rm -f "$PID_FILE"
+  return 0
+}
+
+case "$1" in
+  start)
+    start_app
+    ;;
+  stop)
+    stop_app
+    ;;
+  status)
+    if status_app; then
+      exit 0
+    fi
+    exit 3
+    ;;
+  *)
+    echo "Unknown command: $1" > "$TRIM_TEMP_LOGFILE"
+    exit 1
+    ;;
+esac

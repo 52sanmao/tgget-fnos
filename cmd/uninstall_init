@@ -1,0 +1,6 @@
+#!/bin/bash
+# 卸载前执行：停掉运行中的服务
+if [ -x "${TRIM_APPDEST}/../cmd/main" ]; then
+  "${TRIM_APPDEST}/../cmd/main" stop 2>/dev/null || true
+fi
+exit 0

@@ -1,0 +1,41 @@
+[
+  {
+    "stepTitle": "Telegram 凭据（可选，稍后可在网页里填）",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "Telegram 官方 API 要求使用自己的 api_id / api_hash（到 my.telegram.org 免费申请）。也可以先跳过，安装后在网页控制台里扫码/填写。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_api_id",
+        "label": "API ID",
+        "rules": [
+          {
+            "pattern": "^[0-9]*$",
+            "message": "API ID 应为纯数字"
+          }
+        ]
+      },
+      {
+        "type": "password",
+        "field": "wizard_api_hash",
+        "label": "API Hash"
+      }
+    ]
+  },
+  {
+    "stepTitle": "访问安全（可选）",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "控制台默认监听 0.0.0.0，方便局域网访问。建议设置访问令牌，留空表示本机免验证。"
+      },
+      {
+        "type": "password",
+        "field": "wizard_token",
+        "label": "访问令牌"
+      }
+    ]
+  }
+]

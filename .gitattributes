@@ -1,0 +1,6 @@
+# 飞牛应用的关键文件必须是 LF 换行（CRLF 会导致 NAS 上 bad interpreter）
+# 整体统一 LF，避免 Windows 上 autocrlf 把脚本转坏
+* text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
