@@ -775,13 +775,24 @@ class Downloader:
             c = await self.tg._ensure()
             out = []
             if ids:
-                if hasattr(self.tg, "_call_rpc"):
-                    fetched = await self.tg._call_rpc(c.get_messages(entity, ids=ids), timeout=15.0, check_cancel=is_cancelled)
-                else:
-                    fetched = await c.get_messages(entity, ids=ids)
-                if not isinstance(fetched, list):
-                    fetched = [fetched]
-                out = [m for m in (fetched or []) if m is not None]
+                # 大批量勾选下载（如一次勾 1000+ 条）时，单次 get_messages(entity, ids=全部)
+                # 会让 Telethon 拆成多批 getMessages 连续发，但 _call_rpc 的 15s 超时是罩在
+                # 「整次 get_messages」外面的一次性总超时——批数一多必超时，任务直接报
+                # 「Telegram 请求响应超时（>15s 无响应）」。
+                # 修复：按 100 个 id 一批，每批独立 get_messages + 独立 15s 超时，拉完合并。
+                CHUNK = 100
+                out = []
+                for k in range(0, len(ids), CHUNK):
+                    if is_cancelled():
+                        raise asyncio.CancelledError("任务已取消")
+                    batch = ids[k:k + CHUNK]
+                    if hasattr(self.tg, "_call_rpc"):
+                        fetched = await self.tg._call_rpc(c.get_messages(entity, ids=batch), timeout=15.0, check_cancel=is_cancelled)
+                    else:
+                        fetched = await c.get_messages(entity, ids=batch)
+                    if not isinstance(fetched, list):
+                        fetched = [fetched]
+                    out.extend(m for m in (fetched or []) if m is not None)
                 # 链接下载相册自动扩选：当用户粘贴单条消息链接（如受限频道的多视频/多图相册链接），
                 # 且未带 ?single 参数时，自动把同一 grouped_id 的整组相册媒体一并拉下来。
                 if link_id and len(ids) == 1 and "?single" not in str(job.get("peer") or "").lower() and out:
