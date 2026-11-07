@@ -10,7 +10,7 @@
         "type": "switch",
         "field": "wizard_clear_data",
         "label": "同时删除应用数据（会话、记录、缓存等）",
-        "initValue": false
+        "initValue": "false"
       }
     ]
   }
