@@ -99,6 +99,44 @@ def migrate_jobs(home: Path, old: str, new: str, dry: bool) -> int:
     return changed
 
 
+def migrate_auto(home: Path, old: str, new: str, dry: bool) -> int:
+    """自动下载规则 auto.json：每条规则的 outdir 字段也存绝对路径。"""
+    af = home / "auto.json"
+    if not af.exists():
+        print(f"[skip] 未找到 {af}")
+        return 0
+    try:
+        data = json.loads(af.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"[warn] auto.json 无法解析，跳过：{exc}")
+        return 0
+    rows = data.get("rules") if isinstance(data, dict) else data
+    if not isinstance(rows, list):
+        print("[warn] auto.json 结构未知，跳过")
+        return 0
+
+    changed = 0
+    for rule in rows:
+        if not isinstance(rule, dict):
+            continue
+        if "outdir" in rule and rule["outdir"]:
+            nv = replace_prefix(rule["outdir"], old, new)
+            if nv != rule["outdir"]:
+                print(f"  auto[{rule.get('id')}] outdir: {rule['outdir']!r} -> {nv!r}")
+                rule["outdir"] = nv
+                changed += 1
+
+    if changed and not dry:
+        backup(af)
+        af.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[ok] auto.json 已更新（{changed} 处），备份 {af.name}.bak_migrate")
+    elif changed:
+        print(f"[dry-run] auto.json 将更新 {changed} 处")
+    else:
+        print("[ok] auto.json 无需改动")
+    return changed
+
+
 def migrate_db(home: Path, old: str, new: str, dry: bool) -> int:
     dbf = home / "tgget.db"
     if not dbf.exists():
@@ -156,7 +194,7 @@ def move_files(old: Path, new: Path) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="迁移 tgget 下载目录路径")
-    ap.add_argument("--home", required=True, help="应用数据目录（含 jobs.json/tgget.db）")
+    ap.add_argument("--home", required=True, help="应用数据目录（含 jobs.json/tgget.db/auto.json）")
     ap.add_argument("--old", required=True, help="旧下载目录（绝对路径）")
     ap.add_argument("--new", required=True, help="新下载目录（绝对路径）")
     ap.add_argument("--dry-run", action="store_true", help="只预览不写入")
@@ -178,7 +216,8 @@ def main() -> int:
 
     c1 = migrate_jobs(home, old, new, args.dry_run)
     c2 = migrate_db(home, old, new, args.dry_run)
-    total = c1 + c2
+    c3 = migrate_auto(home, old, new, args.dry_run)
+    total = c1 + c2 + c3
 
     if total == 0:
         print("\n没有需要迁移的记录。可能原因：旧目录写错了，或历史记录里没有以旧目录开头的路径。")
