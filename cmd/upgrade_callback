@@ -1,3 +1,7 @@
 #!/bin/bash
-# 升级后执行：无额外动作（数据在 TRIM_PKGVAR 下保留）
+# 升级文件部署完成后执行：校验并增量更新 requirements.txt 依赖，保留 TRIM_PKGVAR 数据
+MAIN_SCRIPT="$(dirname "$0")/main"
+if [ -x "$MAIN_SCRIPT" ]; then
+  "$MAIN_SCRIPT" sync_deps || exit 1
+fi
 exit 0

@@ -578,6 +578,13 @@ class ConnMixin:
         return self.loop.call(self._reconnect())
 
     async def _reconnect(self) -> dict:
+        for aux in list(getattr(self, "_dl_clients", []) or []):
+            try:
+                await aux.disconnect()
+            except Exception:
+                pass
+        if hasattr(self, "_dl_clients") and self._dl_clients is not None:
+            self._dl_clients.clear()
         if self.client is not None:
             try:
                 await self.client.disconnect()

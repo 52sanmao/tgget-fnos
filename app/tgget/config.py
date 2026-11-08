@@ -1,7 +1,7 @@
 """配置加载。
 
 优先级：命令行参数 > 环境变量 > 配置文件 > 默认值
-配置文件：~/.tgget/config.json
+配置文件：~/.tgget/config.json（飞牛 fnOS 下为 $TRIM_PKGVAR/config.json）
 """
 
 from __future__ import annotations
@@ -61,6 +61,8 @@ class Config:
 
     # --- 下载 --------------------------------------------------------------
     download_dir: str = field(default_factory=lambda: str(_default_download_dir()))
+    # 用户是否在网页「设置」中显式指定过保存目录（为 True 时跨重启严格保留，不被默认共享目录覆盖）
+    custom_dir: bool = False
     # 同时下载几个文件（配合多连接池与多路分片）
     concurrency: int = 5
     # 单文件分块大小（断点续传的最小粒度）
@@ -73,13 +75,10 @@ class Config:
     turbo_v091: bool = False
     # 重名文件处理：rename / skip / overwrite
     on_conflict: str = "rename"
-    # 落盘时只用发布日期命名：`2026-05-31.mp4`。同一天的第 2 个文件起追加
-    # 序号 `2026-05-31_2.mp4`（Telegram 上一个相册的几条消息时间完全相同，
-    # 不排号会互相覆盖）。关掉则沿用 Telegram 上的原始文件名。
+    # 落盘时按方案 C（原始发布日期_消息ID.ext）命名，关掉则沿用 Telegram 上的原始文件名。
     rename_by_date: bool = True
     # 内容级去重：同一个文件被转发到别的对话/别的消息（file_id 相同）时，
     # 不再从 Telegram 下一遍，直接在目标目录建硬链接（跨盘退回复制）。
-    # 关掉就只看「这条消息下过没有」。
     dedupe_content: bool = True
     # 失败自动重试：任务失败 / 部分失败时，自动重试没下成功的文件，直到全部成功或用户手动停止。
     auto_retry: bool = False
@@ -121,6 +120,13 @@ class Config:
                 data["segments"] = 8
             data["turbo_v091"] = True
 
+        # 若用户尚未在网页端手动锁定保存目录（custom_dir=False），且飞牛注入了授权目录，
+        # 自动跟随最新的默认授权目录；若用户已在网页端手动保存过目录（custom_dir=True），则严格保留。
+        if not data.get("custom_dir") and (
+            os.environ.get("TRIM_DATA_ACCESSIBLE_PATHS") or os.environ.get("TRIM_DATA_SHARE_PATHS")
+        ):
+            data["download_dir"] = str(_default_download_dir())
+
         env = {
             "api_id": os.environ.get("TG_API_ID"),
             "api_hash": os.environ.get("TG_API_HASH"),
@@ -141,7 +147,7 @@ class Config:
             if not hasattr(cfg, k):
                 continue
             if k == "api_id":
-                v = int(v)
+                v = int(v) if str(v).strip().isdigit() else 0
             elif k == "port":
                 v = int(v)
             elif k == "concurrency":
@@ -150,6 +156,8 @@ class Config:
                 v = max(1, min(16, int(v)))
             elif k == "dl_connections":
                 v = max(1, min(6, int(v)))
+            elif k == "custom_dir":
+                v = bool(v)
             setattr(cfg, k, v)
         return cfg
 
@@ -169,10 +177,13 @@ class Config:
         return {
             "api_id": self.api_id,
             "api_hash": ("*" * 8 + self.api_hash[-4:]) if self.api_hash else "",
+            "has_creds": bool(self.api_id and self.api_hash),
             "download_dir": str(self.download_path),
+            "custom_dir": self.custom_dir,
             "concurrency": self.concurrency,
             "segments": self.segments,
             "dl_connections": self.dl_connections,
+            "on_conflict": self.on_conflict,
             "host": self.host,
             "port": self.port,
             "proxy": self.proxy,

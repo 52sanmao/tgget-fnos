@@ -1,7 +1,11 @@
 #!/bin/bash
-# 配置变更应用后执行：重启服务以应用新配置
-if [ -x "$(dirname "$0")/main" ]; then
-  "$(dirname "$0")/main" stop 2>/dev/null || true
-  "$(dirname "$0")/main" start 2>/dev/null || true
+# 配置向导或授权目录变更后执行：同步向导配置并平滑重启服务
+MAIN_SCRIPT="$(dirname "$0")/main"
+if [ -x "$MAIN_SCRIPT" ]; then
+  "$MAIN_SCRIPT" sync_deps 2>/dev/null || true
+  if "$MAIN_SCRIPT" status >/dev/null 2>&1; then
+    "$MAIN_SCRIPT" stop 2>/dev/null || true
+    "$MAIN_SCRIPT" start || exit 1
+  fi
 fi
 exit 0

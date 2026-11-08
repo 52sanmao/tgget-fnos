@@ -3,11 +3,14 @@
     "tgget.main": {
       "title": "Telegram 下载器",
       "icon": "images/icon_{0}.png",
-      "type": "url",
+      "type": "iframe",
       "protocol": "http",
       "port": "64780",
       "url": "/",
-      "allUsers": true
+      "allUsers": true,
+      "control": {
+        "accessPerm": "editable"
+      }
     }
   }
 }

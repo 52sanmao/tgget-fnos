@@ -60,8 +60,13 @@ PYBIN="$(command -v python3 || command -v python || echo python)"
 find app -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 # ---- 4. 校验 JSON 配置 ----
-echo "==> 校验 config JSON"
-"$PYBIN" -c "import json; json.load(open('config/privilege')); json.load(open('config/resource')); json.load(open('app/ui/config'))" || {
+echo "==> 校验 config 与 wizard JSON"
+"$PYBIN" -c "
+import json, glob
+for p in ['config/privilege', 'config/resource', 'app/ui/config'] + glob.glob('wizard/*'):
+    with open(p, encoding='utf-8') as f:
+        json.load(f)
+" || {
     echo "配置文件不是合法 JSON" >&2; exit 1
 }
 

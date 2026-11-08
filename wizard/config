@@ -1,0 +1,37 @@
+[
+  {
+    "stepTitle": "Telegram 凭据与网络配置",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "可在此更新 Telegram 官方 API 凭据（my.telegram.org 申请）或代理地址。留空则保持控制台网页「设置」中已保存的配置不变。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_api_id",
+        "label": "API ID（留空保持不变）",
+        "rules": [
+          {
+            "pattern": "^[0-9]*$",
+            "message": "API ID 应为纯数字"
+          }
+        ]
+      },
+      {
+        "type": "password",
+        "field": "wizard_api_hash",
+        "label": "API Hash（留空保持不变）"
+      },
+      {
+        "type": "text",
+        "field": "wizard_proxy",
+        "label": "代理地址（可选，如 socks5://127.0.0.1:7890）"
+      },
+      {
+        "type": "password",
+        "field": "wizard_token",
+        "label": "访问令牌（可选，留空保持不变）"
+      }
+    ]
+  }
+]

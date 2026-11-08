@@ -120,8 +120,8 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:url("data:im
 .panel-hd .cnt{font-size:11px;color:var(--text3);background:var(--bg2);border-radius:8px;padding:0 5px;line-height:15px}
 .panel-search{padding:6px 6px 6px 8px;display:flex;gap:4px;border-bottom:1px solid var(--line);align-items:center}
 .panel-body{flex:1;overflow:auto;min-height:0}
-.panel-ft{flex:none;border-top:1px solid var(--line);padding:6px}
-.panel-ft .btn{width:100%}
+.panel-ft{flex:none;border-top:1px solid var(--line);padding:6px;display:flex;gap:6px}
+.panel-ft .btn{flex:1;min-width:0}
 .row{display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;border-left:2px solid transparent}
 .row:hover{background:var(--bg2)}
 .row.on{background:var(--soft);border-left-color:var(--accent)}
@@ -418,37 +418,52 @@ html.dark .steprow.error .st-ic{background:#7f1d1d;color:#f87171}
 .msg.flash{animation:msgflash 1.6s ease-out}
 
 /* 在线播放器 & 看图灯箱 */
-.viewer{position:fixed;inset:0;z-index:80;background:rgba(9,9,11,.88);backdrop-filter:blur(6px);display:none;flex-direction:column;user-select:none}
+.viewer{position:fixed;inset:0;z-index:80;background:rgba(9,9,11,.92);backdrop-filter:blur(8px);display:none;flex-direction:column;user-select:none}
 .viewer.show{display:flex}
-.vw-hd{flex:none;min-height:42px;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.vw-hd{flex:none;min-height:42px;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg);border-bottom:1px solid var(--line);flex-wrap:wrap;transition:opacity .2s ease,transform .2s ease;z-index:6}
 .vw-hd .t{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:34vw}
 .vw-hd .s{font-size:11px;color:var(--text3);flex:none}
 .vw-hd .idx{font-size:11px;font-weight:600;color:var(--accent);background:var(--soft);padding:1px 6px;border-radius:10px;flex:none}
 .vw-tools{display:inline-flex;align-items:center;gap:4px;flex:none}
 .vw-bd{flex:1;min-height:0;position:relative;display:grid;place-items:center;padding:10px;overflow:hidden}
 .vw-stage{position:relative;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;touch-action:none}
-.vw-imgwrap{position:relative;display: inline-grid;place-items:center;max-width:100%;max-height:100%;transform-origin:center center;transition:transform .08s ease-out;cursor:grab}
+.vw-imgwrap{position:relative;display:inline-grid;place-items:center;max-width:100%;max-height:100%;transform-origin:center center;transition:transform .08s ease-out;cursor:grab}
 .vw-imgwrap.dragging{cursor:grabbing;transition:none}
 .vw-imgwrap img.vw-thumb-bg{max-width:min(92vw,1200px);max-height:calc(100dvh - 155px);width:auto;height:auto;object-fit:contain;filter:blur(10px);transform:scale(1.02);opacity:.85;display:block;pointer-events:none;border-radius:3px}
 .vw-imgwrap img.vw-full{max-width:min(92vw,1400px);max-height:calc(100dvh - 155px);width:auto;height:auto;object-fit:contain;display:block;pointer-events:none;border-radius:3px;box-shadow:0 8px 32px rgba(0,0,0,.45);opacity:0;transition:opacity .18s ease-out}
 .vw-imgwrap.loaded img.vw-thumb-bg{display:none}
 .vw-imgwrap.loaded img.vw-full{opacity:1}
-.vw-loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(15,23,42,.65);color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;display:inline-flex;align-items:center;gap:6px;pointer-events:none;z-index:4}
+.vw-loading{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(15,23,42,.72);color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;display:inline-flex;align-items:center;gap:6px;pointer-events:none;z-index:4}
 .vw-loading .spin{width:14px;height:14px;border-color:rgba(255,255,255,.3);border-top-color:#fff}
-.vw-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(15,23,42,.48);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;z-index:5;transition:background .15s,transform .15s}
+.vw-seek-tip{position:absolute;left:50%;top:18%;transform:translateX(-50%);background:rgba(15,23,42,.82);color:#fff;padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;pointer-events:none;z-index:7;opacity:0;transition:opacity .15s}
+.vw-seek-tip.show{opacity:1}
+.vw-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(15,23,42,.48);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;z-index:5;transition:background .15s,transform .15s,opacity .2s}
 .vw-nav:hover{background:rgba(15,118,110,.85);transform:translateY(-50%) scale(1.06)}
 .vw-nav.prev{left:14px}
 .vw-nav.next{right:14px}
 .vw-bd video{max-width:100%;max-height:calc(100dvh - 155px);background:#000;display:block;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,.5);outline:none}
 .vw-bd audio{width:min(540px,92vw)}
 .vw-bd .noplay{color:#fff;font-size:12px;text-align:center;line-height:2}
-.vw-strip{flex:none;height:52px;background:rgba(15,23,42,.75);border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:5px;padding:4px 10px;overflow-x:auto;scrollbar-width:thin}
+.vw-strip{flex:none;height:52px;background:rgba(15,23,42,.75);border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:5px;padding:4px 10px;overflow-x:auto;scrollbar-width:thin;transition:opacity .2s ease}
 .vw-strip .st-it{width:40px;height:40px;border-radius:4px;overflow:hidden;flex:none;position:relative;cursor:pointer;border:2px solid transparent;opacity:.62;background:#27272a;display:grid;place-items:center;color:#a1a1aa;transition:opacity .15s,border-color .15s,transform .15s}
 .vw-strip .st-it:hover{opacity:.92}
 .vw-strip .st-it.on{opacity:1;border-color:#14b8a6;transform:scale(1.05)}
 .vw-strip .st-it img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .vw-strip .st-it svg{width:16px;height:16px}
-.vw-ft{flex:none;padding:6px 10px;background:var(--bg);border-top:1px solid var(--line);font-size:10px;color:var(--text3);display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.vw-ft{flex:none;padding:6px 10px;background:var(--bg);border-top:1px solid var(--line);font-size:10px;color:var(--text3);display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;transition:opacity .2s ease}
+/* 沉浸模式：单击空白/图片隐藏顶底栏与浮动按钮，画面铺满全屏 */
+.viewer.immersive .vw-hd,
+.viewer.immersive .vw-strip,
+.viewer.immersive .vw-ft,
+.viewer.immersive .vw-nav{opacity:0;pointer-events:none}
+.viewer.immersive .vw-imgwrap img.vw-full,
+.viewer.immersive .vw-imgwrap img.vw-thumb-bg,
+.viewer.immersive .vw-bd video{max-height:96dvh}
+
+/* 手机端底部悬浮多选操作栏（桌面端隐藏） */
+.mob-selbar{display:none}
+/* 自动化规则移动端卡片（桌面端隐藏） */
+.auto-cards{display:none}
 
 .only-mob{display:none}
 
@@ -458,13 +473,19 @@ html.dark .steprow.error .st-ic{background:#7f1d1d;color:#f87171}
 }
 @media (max-width:820px){
   body{font-size:13px}
-  .topbar{height:44px;padding:0 4px}
+  /* 防止 iOS Safari 点击输入框时强制放大整个页面 */
+  .inp,.pk-search input,select.inp,textarea.inp{font-size:16px;min-height:32px}
+  .topbar{height:44px;padding:0 6px;gap:2px}
+  .brand{padding-right:4px;gap:5px}
   .brand span{display:none}
-  #tbNet,#tbDisk,#tbUser{display:none}
+  #tbNet,#tbDisk{display:none}
+  #tbUser{padding:0 6px;max-width:106px}
+  #tbUser #acctText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px}
+  #tbConn{padding:0 6px}
   .tb-sep{display:none}
   #app{height:calc(100% - 44px);flex-direction:column}
   #main{flex:1;min-height:0;order:1}
-  .rail{width:100%;height:54px;flex:none;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:0;gap:0;order:2;overflow:visible;background:var(--bg);padding-bottom:env(safe-area-inset-bottom)}
+  .rail{width:100%;height:calc(52px + env(safe-area-inset-bottom));flex:none;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:0 0 env(safe-area-inset-bottom);gap:0;order:2;overflow:visible;background:var(--bg)}
   .rail button{flex:1;margin:0;padding:6px 0 4px;border-radius:0}
   .rail button .lb{font-size:10px;line-height:11px}
   .only-mob{display:inline-flex}
@@ -472,38 +493,91 @@ html.dark .steprow.error .st-ic{background:#7f1d1d;color:#f87171}
   .shell{position:relative;overflow:hidden}
   .panel{position:absolute;inset:0;width:100%;z-index:12;border-right:0;background:var(--bg)}
   .shell.mob-detail .panel{display:none}
-  .content{width:100%}
+  .content{width:100%;position:relative}
 
   .panel-hd{height:44px}
-  .bar{height:auto;min-height:40px;flex-wrap:nowrap;overflow-x:auto;padding:6px 8px;gap:5px;scrollbar-width:none}
+  .bar{height:auto;min-height:42px;flex-wrap:nowrap;overflow-x:auto;padding:6px 8px;gap:5px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .bar::-webkit-scrollbar{height:0}
   .bar>*{flex:none}
-  .bar .spacer{flex:1 0 10px}
-  .btn.sm{height:27px;padding:0 8px}
+  .bar .spacer{flex:1 0 6px}
+  .btn.sm{height:28px;padding:0 8px;font-size:12px}
   .iconbtn{width:30px;height:30px}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(calc(104px * var(--zoom,1)),1fr));gap:3px;padding:6px}
-  .card .cb{opacity:1;width:19px;height:19px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(calc(104px * var(--zoom,1)),1fr));gap:3px;padding:6px;padding-bottom:64px}
+  .card .cb{opacity:1;width:22px;height:22px}
   .card .cb svg{opacity:0}
   .card.on .cb svg{opacity:1}
   .card .play{opacity:.9}
   .body{-webkit-overflow-scrolling:touch}
-  .msgs{padding:10px 26px 8px 28px}
-  .msg{max-width:92%}
-  .msg .mk{opacity:1;left:-24px;width:19px;height:19px}
-  .msg.out .mk{right:-24px}
-  .mb.has-media{max-width:calc(100vw - 120px)}
-  .mfile{max-width:min(240px, calc(100vw - 150px))}
+  .msgs{padding:10px 10px 68px 26px}
+  .msg{max-width:94%}
+  .msg .mk{opacity:1;left:-22px;width:20px;height:20px}
+  .msg.out .mk{right:-22px}
+  .mb.has-media{max-width:calc(100vw - 96px)}
+  .mfile{max-width:min(240px, calc(100vw - 130px))}
+  /* 手机端「我的收藏」气泡与右侧转发/丢弃按钮防溢出 */
+  .msg.saved-msg{max-width:100%}
+  .msg.saved-msg .mb.has-media{max-width:calc(100vw - 112px)}
+  .msg-acts .act-btn{height:26px;padding:0 7px;max-width:72px;overflow:hidden;text-overflow:ellipsis}
+
+  /* 手机端底部悬浮多选动作栏：勾选任意项时自动浮出，单手大拇指直达 */
+  .mob-selbar{position:absolute;left:8px;right:8px;bottom:8px;z-index:16;background:rgba(24,24,27,.94);color:#fff;border-radius:10px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.28);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+  .mob-selbar.show{display:flex}
+  .mob-selbar .ms-info{font-size:12px;color:#e4e4e7;white-space:nowrap}
+  .mob-selbar .ms-info b{color:#2dd4bf}
+  .mob-selbar .ms-acts{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-left:auto}
+  .mob-selbar .btn.sm{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff;height:28px;padding:0 9px}
+  .mob-selbar .btn.sm.danger{background:rgba(239,68,68,.22);border-color:rgba(248,113,113,.4);color:#fecaca}
+  .mob-selbar .btn.sm.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 
   .split{flex-direction:column}
   .fside{width:100%;border-left:0;border-top:1px solid var(--line)}
   .flist{grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:4px;padding:8px}
   .tbl{table-layout:auto;min-width:520px}
+  .log-tbl{min-width:0 !important;width:100%}
+  .log-filters{flex-wrap:wrap}
+  .log-filters #lgFilterQ{flex:1 1 100%;order:2;margin-top:4px}
 
-  .mask{padding:8px}
-  .dlg{width:100%;max-height:92vh}
-  .vw-bd{padding:4px}
-  .vw-bd video{max-height:calc(100dvh - 150px)}
-  .toast{bottom:70px;max-width:86vw}
+  /* 自动化规则在手机端切换为卡片视图，无需左右拖动表格 */
+  .auto-tbl-box{display:none}
+  .auto-cards{display:flex;flex-direction:column;gap:8px;padding:0 10px 16px}
+  .ar-card{border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .ar-card .ar-top{display:flex;align-items:center;gap:6px}
+  .ar-card .ar-nm{font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ar-card .ar-meta{font-size:11.5px;color:var(--text2);display:flex;flex-wrap:wrap;gap:4px 10px}
+  .ar-card .ar-ft{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--bg2)}
+
+  /* 手机端弹窗：底部抽屉式（Bottom Sheet），防键盘挤压 */
+  .mask{padding:0;align-items:flex-end}
+  .dlg,.dlg.wide{width:100%;max-width:100%;max-height:90dvh;border-radius:14px 14px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom)}
+  .dlg-hd{height:42px;padding:0 8px 0 14px;font-size:13px}
+  .dlg-ft{padding:10px 12px}
+  .dlg-ft .btn{height:34px;padding:0 14px}
+
+  /* 手机端看图与视频灯箱优化 */
+  .vw-hd{background:rgba(15,23,42,.9);color:#f4f4f5;border-bottom-color:rgba(255,255,255,.12);padding:max(6px, env(safe-area-inset-top)) 8px 6px;gap:5px}
+  .vw-hd .t{max-width:42vw;color:#fff}
+  .vw-hd .s{display:none}
+  .vw-hd .btn.sm{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff;height:27px;padding:0 8px}
+  .vw-hd .btn.primary.sm{background:var(--accent);border-color:var(--accent)}
+  .vw-hd .iconbtn{color:#fff}
+  .vw-hd select.inp{background-color:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff;font-size:12px;min-height:27px;height:27px !important}
+  .vw-nav{display:none}
+  .vw-bd{padding:2px}
+  .vw-imgwrap img.vw-full,.vw-imgwrap img.vw-thumb-bg{max-width:98vw;max-height:calc(100dvh - 118px)}
+  .vw-bd video{max-height:calc(100dvh - 118px);width:100%}
+  .vw-strip{height:48px;padding:4px 8px}
+  .vw-ft{background:rgba(15,23,42,.9);color:#a1a1aa;border-top-color:rgba(255,255,255,.1);padding:5px 10px max(6px, env(safe-area-inset-bottom))}
+  .vw-ft .vw-shortcut{display:none}
+  .toast{bottom:70px;max-width:88vw}
+}
+@media (max-width:520px){
+  #btnSettings span,#btnLogs span{display:none}
+  #btnSettings,#btnLogs{padding:0 6px !important;width:30px;justify-content:center}
+  #tbUser{max-width:86px}
+}
+@media (max-height:500px) and (orientation:landscape){
+  .vw-strip,.vw-ft{display:none !important}
+  .vw-bd video,.vw-imgwrap img.vw-full{max-height:calc(100dvh - 48px)}
 }
 @media (max-width:400px){
   .grid{grid-template-columns:repeat(auto-fill,minmax(calc(100px * var(--zoom,1)),1fr))}
@@ -515,7 +589,7 @@ html.dark .steprow.error .st-ic{background:#7f1d1d;color:#f87171}
 <body>
 
 <header class="topbar">
-  <div class="brand"><div class="logo">T</div><b>tgnas</b><span id="ver">0.9.4</span></div>
+  <div class="brand"><div class="logo">T</div><b>tgnas</b><span id="ver">0.9.5</span></div>
   <div class="tb-sep"></div>
   <div class="tb click" id="tbUser" title="账号：查看登录信息 / 切换账号">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.6 6 .7-4.4 4.2 1.2 6L12 16.7 6.7 19.5l1.2-6L3.5 9.3l6-.7L12 3z"/></svg>
@@ -579,6 +653,12 @@ html.dark .steprow.error .st-ic{background:#7f1d1d;color:#f87171}
   <div class="dlg-hd"><span id="dlgTitle">标题</span><button class="iconbtn" onclick="closeDlg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="dlg-bd" id="dlgBody"></div>
   <div class="dlg-ft" id="dlgFoot"></div>
+</div></div>
+
+<div class="mask" id="subMask" style="z-index:70"><div class="dlg" id="subDlg">
+  <div class="dlg-hd"><span id="subDlgTitle">选择文件夹</span><button class="iconbtn" onclick="closeSubDlg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="dlg-bd" id="subDlgBody"></div>
+  <div class="dlg-ft" id="subDlgFoot"></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -690,6 +770,7 @@ function openDlg(title, body, foot, wide) {
   $('#mask').classList.add('show');
 }
 function closeDlg() { $('#mask').classList.remove('show'); }
+function closeSubDlg() { var sm = $('#subMask'); if (sm) sm.classList.remove('show'); }
 
 /* ---------------- 顶栏 ---------------- */
 function renderTop() {
@@ -758,7 +839,8 @@ function renderChat() {
     + '<button class="btn sm" id="btnExport" disabled>' + I.file + '<span>导出</span></button>'
     + '<button class="btn sm danger" id="btnDelete" disabled>' + I.trash + '<span>删除</span></button>'
     + '<button class="btn primary sm" id="btnDownload" disabled>' + I.dl + '<span id="dlLabel">下载选中</span></button>'
-    + '</div><div class="body" id="chatBody"></div></div>');
+    + '</div><div class="body" id="chatBody"></div>'
+    + '<div class="mob-selbar" id="mobSelBar"></div></div>');
   wrap.appendChild(panel); wrap.appendChild(content);
 
   $('#viewCaps', panel).addEventListener('click', function (e) {
@@ -780,6 +862,16 @@ function renderChat() {
   $('#btnDelete', content).addEventListener('click', openDeleteDialog);
   $('#zoomIn', content).addEventListener('click', function () { zoomStep(1); });
   $('#zoomOut', content).addEventListener('click', function () { zoomStep(-1); });
+  $('#mobSelBar', content).addEventListener('click', function (e) {
+    var mb = e.target.closest('button[data-ms]');
+    if (!mb) return;
+    var act = mb.dataset.ms;
+    if (act === 'all') toggleSelectAll();
+    else if (act === 'none') { S.sel = []; updateSelBar(); }
+    else if (act === 'fw') openForwardDialog();
+    else if (act === 'del') openDeleteDialog();
+    else if (act === 'dl') downloadSelected();
+  });
 
   // 事件委托：paint 时只换 innerHTML，不必每次重新绑一堆监听
   var body = $('#chatBody', content);
@@ -1220,6 +1312,23 @@ function updateSelBar() {
     });
     bar.innerHTML = S.sel.length ? '已选 <b>' + picked + '</b> 条 · ' + bytes(total) : '';
   }
+  var mbar = $('#mobSelBar');
+  if (mbar) {
+    if (S.sel.length) {
+      mbar.classList.add('show');
+      mbar.innerHTML = '<span class="ms-info">已选 <b>' + picked + '</b> 项' + (total ? ' · ' + bytes(total) : '') + '</span>'
+        + '<div class="ms-acts">'
+        + '<button class="btn sm" data-ms="all">' + (allOn ? '取消全选' : '全选') + '</button>'
+        + '<button class="btn sm" data-ms="none">清空</button>'
+        + '<button class="btn sm" data-ms="fw">转发</button>'
+        + '<button class="btn sm danger" data-ms="del">删除</button>'
+        + '<button class="btn primary sm" data-ms="dl">下载 (' + S.sel.length + ')</button>'
+        + '</div>';
+    } else {
+      mbar.classList.remove('show');
+      mbar.innerHTML = '';
+    }
+  }
   $$('.card, .msg').forEach(function (c) {
     if (c.dataset.ids) {
       var ids = c.dataset.ids.split(',').map(Number);
@@ -1491,8 +1600,9 @@ var GA = { max: 340, min: 68, gap: 2, outer: 12, inner: 3 };
 // 气泡可用宽度：桌面留出左侧对话列表，手机只留两侧留白
 function gaMaxWidth() {
   var w = (typeof window !== 'undefined' && window.innerWidth) || 1024;
-  var pad = w <= 820 ? 104 : 560;
-  return Math.max(180, Math.min(GA.max, w - pad));
+  var savedExtra = isSavedChat() ? 72 : 0;
+  var pad = w <= 820 ? (68 + savedExtra) : (560 + savedExtra);
+  return Math.max(160, Math.min(GA.max, w - pad));
 }
 
 function mediaSize(m) {
@@ -2020,6 +2130,11 @@ function openViewer(id) {
     }
   }
 
+  if (stage) {
+    stage.insertAdjacentHTML('beforeend', '<div class="vw-seek-tip" id="vwSeekTip"></div>');
+    bindStageTouchGestures(stage, isImg, kind === 'video');
+  }
+
   if (isImg) {
     var fullImg = $('#vwFullImg', body);
     var wrap = $('#vwImgWrap', body);
@@ -2044,14 +2159,14 @@ function openViewer(id) {
   paintViewerStrip(list, Number(m.id));
 
   var shortcutHint = isImg
-    ? '滚轮缩放 · 双击放大/还原 · 拖拽平移 · ←/→ 切换上下张'
-    : (isVidOrAud ? '←/→ 快退/快进 5 秒 · Shift+←/→ 切换上下个媒体 · Space 暂停/播放' : '');
+    ? '滚轮/双指缩放 · 双击放大 · 左右滑切换 · 下滑关闭'
+    : (isVidOrAud ? '←/→ 快退/快进 · 手机双击左右侧快进10秒/长按2倍速 · 左右滑切换' : '');
   $('#vwFoot').innerHTML = '<span>' + (m.local
     ? '已下载到本机，直接从磁盘高速读取（不占网络带宽）。'
     : (isPlayable(kind)
       ? '在线流式加载：支持进度条任意拖动与原图自动缓存。'
       : '这个类型只能下载，不能直接在线预览。')) + '</span>'
-    + (shortcutHint ? '<span>' + shortcutHint + '</span>' : '');
+    + (shortcutHint ? '<span class="vw-shortcut">' + shortcutHint + '</span>' : '');
 
   var dl = $('#vwDl');
   dl.onclick = function () {
@@ -2068,6 +2183,128 @@ function openViewer(id) {
   v.classList.add('show');
 }
 
+function showSeekTip(txt, ms) {
+  var el = $('#vwSeekTip');
+  if (!el) return;
+  el.textContent = txt;
+  el.classList.add('show');
+  clearTimeout(showSeekTip._t);
+  showSeekTip._t = setTimeout(function () { el.classList.remove('show'); }, ms || 900);
+}
+
+/* 通用触摸手势：支持所有媒体的左右滑切换、下滑关闭、单击沉浸模式，以及视频双击快进/快退与长按 2.0x 倍速 */
+function bindStageTouchGestures(stage, isImg, isVideo) {
+  if (!stage) return;
+  var sx = 0, sy = 0, st = 0, moved = false, multiTouch = false;
+  var lastTapAt = 0, lastTapX = 0, tapTimer = 0, longPressTimer = 0, speedBoosting = false;
+
+  stage.addEventListener('touchstart', function (e) {
+    if (e.touches.length > 1) {
+      multiTouch = true;
+      clearTimeout(longPressTimer);
+      return;
+    }
+    multiTouch = false;
+    moved = false;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    st = Date.now();
+
+    if (isVideo) {
+      var vid = $('#vwVideo', stage);
+      if (vid && sy < window.innerHeight - 110) {
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(function () {
+          if (!moved && !multiTouch && !vid.paused) {
+            speedBoosting = true;
+            vid.playbackRate = 2.0;
+            showSeekTip('2.0x 倍速播放中 ⏩', 4000);
+          }
+        }, 480);
+      }
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 1) { multiTouch = true; clearTimeout(longPressTimer); return; }
+    if (Math.abs(e.touches[0].clientX - sx) > 12 || Math.abs(e.touches[0].clientY - sy) > 12) {
+      moved = true;
+      clearTimeout(longPressTimer);
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchend', function (e) {
+    clearTimeout(longPressTimer);
+    if (speedBoosting) {
+      speedBoosting = false;
+      var vid0 = $('#vwVideo', stage);
+      if (vid0) vid0.playbackRate = VW.rate || 1;
+      showSeekTip('已恢复 ' + (VW.rate || 1) + 'x 速度', 700);
+      return;
+    }
+    if (multiTouch || !sx || !e.changedTouches.length) {
+      if (!e.touches.length) multiTouch = false;
+      sx = 0;
+      return;
+    }
+    if (isImg && VW.scale > 1.04) { sx = 0; return; }
+
+    var ex = e.changedTouches[0].clientX;
+    var ey = e.changedTouches[0].clientY;
+    var dx = ex - sx, dy = ey - sy, dt = Date.now() - st;
+    sx = 0;
+
+    // 避开视频底部原生进度条区域的误触
+    if (isVideo && sy > window.innerHeight - 105) return;
+
+    // 1) 左右滑动切换上下一个媒体（图片未放大、视频、音频通用）
+    if (Math.abs(dx) > 52 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      stepViewer(dx < 0 ? 1 : -1);
+      return;
+    }
+    // 2) 下滑手势关闭灯箱返回列表
+    if (dy > 75 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+      closeViewer();
+      return;
+    }
+    // 3) 轻触 / 双击判定
+    if (!moved && dt < 280) {
+      var now = Date.now();
+      if (now - lastTapAt < 300 && Math.abs(ex - lastTapX) < 48) {
+        clearTimeout(tapTimer);
+        lastTapAt = 0;
+        if (isImg) {
+          if (VW.scale > 1.05) zoomViewerImg(0, true);
+          else { VW.scale = 2.2; applyImgTransform(); }
+        } else if (isVideo) {
+          var vid = $('#vwVideo', stage);
+          if (vid) {
+            var w = stage.clientWidth || window.innerWidth;
+            if (ex < w * 0.38) {
+              vid.currentTime = Math.max(0, (vid.currentTime || 0) - 10);
+              showSeekTip('⏪ 快退 10 秒', 800);
+            } else if (ex > w * 0.62) {
+              vid.currentTime = Math.min(vid.duration || 1e9, (vid.currentTime || 0) + 10);
+              showSeekTip('快进 10 秒 ⏩', 800);
+            } else {
+              if (vid.paused) vid.play(); else vid.pause();
+            }
+          }
+        }
+      } else {
+        lastTapAt = now;
+        lastTapX = ex;
+        if (isImg) {
+          tapTimer = setTimeout(function () {
+            var v = $('#viewer');
+            if (v) v.classList.toggle('immersive');
+          }, 260);
+        }
+      }
+    }
+  }, { passive: true });
+}
+
 function bindImageInteractions(stage, wrap) {
   if (!stage || !wrap) return;
   stage.addEventListener('wheel', function (e) {
@@ -2079,6 +2316,38 @@ function bindImageInteractions(stage, wrap) {
     if (VW.scale > 1.05) zoomViewerImg(0, true);
     else { VW.scale = 2.2; applyImgTransform(); }
   });
+
+  // 手机端双指捏合缩放 (Pinch-to-Zoom) + 放大后单指拖拽平移
+  var pinchDist = 0, pinchScale = 1;
+  stage.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      VW.dragging = false;
+      var dx = e.touches[1].clientX - e.touches[0].clientX;
+      var dy = e.touches[1].clientY - e.touches[0].clientY;
+      pinchDist = Math.hypot(dx, dy);
+      pinchScale = VW.scale || 1;
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2 && pinchDist > 10) {
+      e.preventDefault();
+      var dx = e.touches[1].clientX - e.touches[0].clientX;
+      var dy = e.touches[1].clientY - e.touches[0].clientY;
+      var dist = Math.hypot(dx, dy);
+      VW.scale = Math.min(5, Math.max(0.5, Math.round((pinchScale * (dist / pinchDist)) * 100) / 100));
+      if (VW.scale <= 1) { VW.tx = 0; VW.ty = 0; }
+      applyImgTransform();
+    }
+  }, { passive: false });
+
+  stage.addEventListener('touchend', function (e) {
+    if (e.touches.length < 2) {
+      pinchDist = 0;
+      if (VW.scale < 1) zoomViewerImg(0, true);
+    }
+  }, { passive: true });
+
   wrap.addEventListener('pointerdown', function (e) {
     if (VW.scale <= 1) return;
     VW.dragging = true;
@@ -2088,7 +2357,7 @@ function bindImageInteractions(stage, wrap) {
     try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
   });
   wrap.addEventListener('pointermove', function (e) {
-    if (!VW.dragging) return;
+    if (!VW.dragging || pinchDist > 0) return;
     VW.tx = e.clientX - VW.sx;
     VW.ty = e.clientY - VW.sy;
     applyImgTransform();
@@ -2096,24 +2365,6 @@ function bindImageInteractions(stage, wrap) {
   var endDrag = function () { VW.dragging = false; wrap.classList.remove('dragging'); };
   wrap.addEventListener('pointerup', endDrag);
   wrap.addEventListener('pointercancel', endDrag);
-
-  // 手机左右滑动切换图片（未放大时）
-  var touchX = 0, touchY = 0;
-  stage.addEventListener('touchstart', function (e) {
-    if (e.touches.length === 1 && VW.scale <= 1) {
-      touchX = e.touches[0].clientX;
-      touchY = e.touches[0].clientY;
-    } else { touchX = 0; }
-  }, { passive: true });
-  stage.addEventListener('touchend', function (e) {
-    if (!touchX || VW.scale > 1 || !e.changedTouches.length) return;
-    var dx = e.changedTouches[0].clientX - touchX;
-    var dy = e.changedTouches[0].clientY - touchY;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      stepViewer(dx < 0 ? 1 : -1);
-    }
-    touchX = 0;
-  }, { passive: true });
 }
 
 function paintViewerStrip(list, activeId) {
@@ -2149,7 +2400,7 @@ function closeViewer() {
     try { document.exitPictureInPicture(); } catch (e) {}
   }
   S.viewingId = null;
-  v.classList.remove('show');
+  v.classList.remove('show', 'immersive');
   $('#vwBody').innerHTML = '';   // 清掉 video 元素，停止后台取流
 }
 
@@ -2522,7 +2773,7 @@ function jobRetryable(j) {
 }
 
 function renderTasks() {
-  var wrap = el('<div class="shell"></div>');
+  var wrap = el('<div class="shell" id="taskShell"></div>');
   var panel = el('<aside class="panel">'
     + '<div class="panel-hd"><span class="ttl">任务</span><span class="cnt" id="jobCnt">0</span>'
     + '<span style="flex:1"></span>'
@@ -2531,7 +2782,11 @@ function renderTasks() {
     + '<div class="panel-search"><input class="inp" id="jobSearch" placeholder="搜索任务名称、对话"></div>'
     + '<div class="counter" id="jobCounter"></div>'
     + '<div class="panel-body" id="jobList"></div>'
-    + '<div class="panel-ft"><button class="btn" id="btnNewTask">' + I.plus + '<span>新建任务</span></button></div></aside>');
+    + '<div class="panel-ft" style="display:flex;gap:6px">'
+    + '<button class="btn primary" id="btnQuickBatch" style="flex:1">' + I.dl + '<span>批量下载</span></button>'
+    + '<button class="btn" id="btnQuickLink" style="flex:1">' + I.link + '<span>链接下载</span></button>'
+    + '<button class="btn" id="btnNewTask" style="flex:none;width:auto;padding:0 10px" title="打开新建任务面板">' + I.plus + '</button>'
+    + '</div></aside>');
   var content = el('<div class="content"><div class="tabs" id="taskTabs"></div><div class="body" id="taskBody"></div></div>');
   wrap.appendChild(panel); wrap.appendChild(content);
 
@@ -2547,15 +2802,22 @@ function renderTasks() {
       toast('已清空 ' + ((d && d.removed) || 0) + ' 条记录');
     }).catch(function (e) { toast(e.message); });
   });
+  $('#btnQuickBatch', panel).addEventListener('click', openBatchDialog);
+  $('#btnQuickLink', panel).addEventListener('click', openLinkDialog);
   $('#btnNewTask', panel).addEventListener('click', function () {
-    S.taskView = 'new'; S.jobSel = null; paintTaskTabs(); paintTaskBody(); paintJobs();
+    S.taskView = 'new'; S.jobSel = null;
+    wrap.classList.add('mob-detail');
+    paintTaskTabs(); paintTaskBody(); paintJobs();
   });
   $('#jobCounter', panel).addEventListener('click', function (e) {
     var s = e.target.closest('span[data-f]');
     if (!s) return;
     S.jobFilter = s.dataset.f; paintJobs();
   });
-  setTimeout(function () { paintTaskTabs(); paintTaskBody(); paintJobs(); }, 0);
+  setTimeout(function () {
+    if (S.jobSel) wrap.classList.add('mob-detail');
+    paintTaskTabs(); paintTaskBody(); paintJobs();
+  }, 0);
   refreshJobs();
   return wrap;
 }
@@ -2565,11 +2827,25 @@ function paintTaskTabs() {
   if (!tabs) return;
   var job = null;
   for (var i = 0; i < S.jobs.length; i++) if (S.jobs[i].job_id === S.jobSel) job = S.jobs[i];
-  tabs.innerHTML = '<button class="tab' + (S.taskView === 'new' ? ' on' : '') + '" data-t="new">' + I.plus + '<span>新建任务</span></button>'
+  tabs.innerHTML = '<button class="btn sm only-mob" id="btnBackTaskPanel" style="margin:3px 6px 3px 2px">‹ 任务列表</button>'
+    + '<button class="tab' + (S.taskView === 'new' ? ' on' : '') + '" data-t="new">' + I.plus + '<span>新建任务</span></button>'
     + (job ? '<button class="tab on" data-t="job">' + I.dl + '<span>' + esc((job.title || job.peer).slice(0, 16)) + '</span><span class="x" data-close="1">✕</span></button>' : '');
+  var backBtn = $('#btnBackTaskPanel', tabs);
+  if (backBtn) {
+    backBtn.addEventListener('click', function () {
+      var ts = $('#taskShell');
+      if (ts) ts.classList.remove('mob-detail');
+    });
+  }
   $$('.tab', tabs).forEach(function (t) {
     t.addEventListener('click', function (e) {
-      if (e.target.dataset.close) { S.jobSel = null; S.taskView = 'new'; paintTaskTabs(); paintTaskBody(); paintJobs(); return; }
+      if (e.target.dataset.close) {
+        S.jobSel = null; S.taskView = 'new';
+        var ts = $('#taskShell');
+        if (ts) ts.classList.remove('mob-detail');
+        paintTaskTabs(); paintTaskBody(); paintJobs();
+        return;
+      }
       S.taskView = t.dataset.t; paintTaskTabs(); paintTaskBody();
     });
   });
@@ -2620,7 +2896,10 @@ function paintJobs() {
   }).join('');
   $$('.trow', box).forEach(function (r) {
     r.addEventListener('click', function () {
-      S.jobSel = r.dataset.j; S.taskView = 'job'; paintTaskTabs(); paintTaskBody(); paintJobs();
+      S.jobSel = r.dataset.j; S.taskView = 'job';
+      var ts = $('#taskShell');
+      if (ts) ts.classList.add('mob-detail');
+      paintTaskTabs(); paintTaskBody(); paintJobs();
     });
   });
   $$('[data-retry]', box).forEach(function (b) {
@@ -2853,9 +3132,13 @@ function openBatchDialog() {
       + '<button class="btn sm" data-q="1000">1000 条</button>'
       + '</div></div>'
       + '<div class="tip" id="bdModeTip">正在检查该对话的历史下载记录…</div></div>'
-      + '<div class="field"><label>保存到</label><input class="inp" id="bdOut" value="' + esc((S.status && S.status.config && S.status.config.download_dir) || '') + '"></div>',
+      + '<div class="field"><label>保存到</label><div style="display:flex;gap:6px;align-items:center"><input class="inp" id="bdOut" style="flex:1" value="' + esc((S.status && S.status.config && S.status.config.download_dir) || '') + '"><button class="btn" id="bdBrowse" type="button">浏览…</button></div></div>',
       '<button class="btn" onclick="closeDlg()">取消</button><button class="btn primary" id="bdGo">开始下载</button>', true);
     bindPeerPicker('bd', dialogs);
+    var bdBr = $('#bdBrowse');
+    if (bdBr) bdBr.addEventListener('click', function () {
+      openBrowseDir(function (p) { $('#bdOut').value = p; }, $('#bdOut').value.trim());
+    });
 
     var curMode = 'new';
     var lastMaxId = 0;
@@ -2904,7 +3187,9 @@ function openBatchDialog() {
       btn.disabled = true; btn.textContent = '创建中…';
       api('download.start', { peer: peer, mode: curMode, limit: limit, ids: [], outdir: out || undefined }).then(function (d) {
         closeDlg(); toast('任务已创建 #' + d.job_id);
-        S.taskView = 'job'; S.jobSel = d.job_id; refreshJobs();
+        S.taskView = 'job'; S.jobSel = d.job_id;
+        var ts = $('#taskShell'); if (ts) ts.classList.add('mob-detail');
+        refreshJobs();
       }).catch(function (e) {
         btn.disabled = false; btn.textContent = '开始下载';
         toast(e.message);
@@ -2943,7 +3228,10 @@ function openLinkDialog() {
     });
     p.then(function () {
       closeDlg(); toast('已创建 ' + ok + ' 个任务' + (fail ? '，' + fail + ' 个失败' : ''));
-      if (lastJobId) { S.taskView = 'job'; S.jobSel = lastJobId; }
+      if (lastJobId) {
+        S.taskView = 'job'; S.jobSel = lastJobId;
+        var ts = $('#taskShell'); if (ts) ts.classList.add('mob-detail');
+      }
       refreshJobs();
     });
   });
@@ -2982,7 +3270,7 @@ function paintAuto() {
       + '<p>自动规则开启后会一直监听对话的新消息，符合条件的媒体自动下载到本地。<br>用右上角「新建自动下载」创建第一条。</p></div>';
     return;
   }
-  body.innerHTML = stats + '<div class="box" style="margin:0 10px 10px">'
+  var tblHtml = '<div class="box auto-tbl-box" style="margin:0 10px 10px">'
     + '<table class="tbl"><thead><tr><th style="width:24px"></th><th>规则</th><th style="width:120px">对话</th>'
     + '<th style="width:90px">条件</th><th style="width:56px">间隔</th><th style="width:92px">上次运行</th>'
     + '<th style="width:64px">成功/失败</th><th style="width:150px">操作</th></tr></thead><tbody>'
@@ -2999,6 +3287,30 @@ function paintAuto() {
         + '<button class="btn sm" data-run="' + r.id + '">立即</button> '
         + '<button class="btn sm danger" data-del="' + r.id + '">删除</button></td></tr>';
     }).join('') + '</tbody></table></div>';
+  var cardsHtml = '<div class="auto-cards">'
+    + S.rules.map(function (r) {
+      var itv = r.interval >= 3600 ? Math.round(r.interval / 3600) + ' 小时' : r.interval >= 60 ? Math.round(r.interval / 60) + ' 分钟' : r.interval + ' 秒';
+      var condTxt = (r.kinds || []).map(function (k) { return kindOf(k).t; }).join('/') + (r.min_bytes ? ' · ≥' + bytes(r.min_bytes) : '');
+      return '<div class="ar-card">'
+        + '<div class="ar-top"><span class="dot" style="background:' + (r.enabled ? 'var(--ok)' : '#a1a1aa') + '"></span>'
+        + '<span class="ar-nm">' + esc(r.name) + '</span>'
+        + (r.last_error ? '<span class="tag red">异常</span>' : '<span class="tag ' + (r.enabled ? 'teal' : '') + '">' + (r.enabled ? '运行中' : '已暂停') + '</span>')
+        + '</div>'
+        + '<div class="ar-meta">'
+        + '<span>对话：<b>' + esc(r.peer_title || r.peer) + '</b></span>'
+        + '<span>类型：' + condTxt + '</span>'
+        + '<span>间隔：' + itv + '</span>'
+        + '<span>上次：' + (r.last_run ? fullTime(r.last_run).slice(5) : '未运行') + '</span>'
+        + '</div>'
+        + '<div class="ar-ft">'
+        + '<span style="font-size:11px">成功 <b style="color:var(--ok)">' + (r.ok || 0) + '</b> · 失败 <b style="color:' + (r.fail ? 'var(--bad)' : 'var(--text3)') + '">' + (r.fail || 0) + '</b></span>'
+        + '<div style="display:flex;gap:6px">'
+        + '<button class="btn sm" data-tog="' + r.id + '">' + (r.enabled ? '暂停' : '启用') + '</button>'
+        + '<button class="btn sm" data-run="' + r.id + '">立即执行</button>'
+        + '<button class="btn sm danger" data-del="' + r.id + '">删除</button>'
+        + '</div></div></div>';
+    }).join('') + '</div>';
+  body.innerHTML = stats + tblHtml + cardsHtml;
   $$('[data-tog]', body).forEach(function (b) {
     b.addEventListener('click', function () {
       var id = b.dataset.tog, r = null;
@@ -3129,7 +3441,12 @@ function openSettings(focus) {
     var m = p.match(/^(\w+):\/\/(?:([^:@]+):([^@]*)@)?([^:]+):(\d+)/);
     if (m) { type = m[1].toLowerCase(); user = m[2] || ''; pass = m[3] || ''; host = m[4]; port = m[5]; }
   }
-  openDlg('设置', '<div class="field" id="fldAutoDark"><label>外观 · 自动夜间模式</label>'
+  openDlg('设置', '<div class="field" id="fldCreds"><label>Telegram 官方 API 凭据（<a href="https://my.telegram.org" target="_blank" rel="noopener" style="color:var(--accent)">my.telegram.org</a> 免费申请）</label>'
+    + '<div class="field-row">'
+    + '<div class="field" style="flex:1;margin-bottom:0"><input class="inp" id="stApiId" type="number" value="' + (c.api_id ? esc(c.api_id) : '') + '" placeholder="API ID（纯数字）"></div>'
+    + '<div class="field" style="flex:2;margin-bottom:0"><input class="inp" id="stApiHash" type="password" value="" placeholder="' + (c.api_hash ? ('已保存（' + esc(c.api_hash) + '），不改请留空') : '填入 32 位 API Hash') + '"></div>'
+    + '</div><div class="tip">安装时如果跳过了向导，可在此直接补填 API ID 与 API Hash，保存后即可扫码登录。</div></div>'
+    + '<div class="field" id="fldAutoDark"><label>外观 · 自动夜间模式</label>'
     + '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text)">'
     + '<input type="checkbox" id="stAutoDark" ' + (isAutoDarkEnabled() ? 'checked' : '') + '> 按时间自动切换（18:00~06:00 夜间）</label>'
     + '<div class="tip">开启后根据本机时间自动切换：晚上 18 点后自动进入夜间模式，早上 6 点自动切回日间。'
@@ -3149,8 +3466,8 @@ function openSettings(focus) {
     + '<div class="field" id="fldDir"><label>保存目标文件夹</label>'
     + '<div style="display:flex;gap:6px;align-items:center">'
     + '<input class="inp" id="stDir" style="flex:1" value="' + esc(c.download_dir || '') + '" placeholder="例如 /vol1/1000/tgget">'
-    + '<button class="btn" id="stBrowse">浏览…</button></div>'
-    + '<div class="tip">下载的图片、视频、文件都会保存到这个目录。点击「浏览…」可在已授权的目录里逐级选择子文件夹；NAS 上也可直接填挂载盘路径，例如 <code>/vol1/1000/tgget</code>。</div></div>'
+    + '<button class="btn" id="stBrowse" type="button">浏览…</button></div>'
+    + '<div class="tip">下载的图片、视频、文件都会保存到这个目录。点击「浏览…」可在已授权的目录里逐级选择子文件夹（保存后跨重启永久保留）。</div></div>'
     + '<div class="field" id="fldArchive"><label>「我的收藏」气泡转发目标群 ID</label>'
     + '<input class="inp" id="stArchivePeer" value="' + esc(c.archive_peer || resolveArchiveTarget().peer || '') + '" placeholder="例如 -1003853398035（留空将自动匹配「春风春色」）">'
     + '<div class="tip">在「我的收藏」消息视图点击气泡右侧「转发」时，将通过<b>下载+重新上传（保留原文字与样式）</b>发往该群组 ID，随后自动把已下载文件移入该群目录并清理我的收藏。使用数字 ID 不怕群改名。</div></div>'
@@ -3184,7 +3501,7 @@ function openSettings(focus) {
     + '<button class="btn primary" id="stSave">保存</button>', true);
 
   // 从顶栏点进来时直接定位到对应区块，避免「点哪个都是同一个设置页」的困惑
-  var FOCUS = { proxy: '#stType', dir: '#fldDir', name: '#fldName' };
+  var FOCUS = { creds: '#fldCreds', proxy: '#stType', dir: '#fldDir', name: '#fldName' };
   if (focus && FOCUS[focus]) {
     setTimeout(function () {
       var node = $(FOCUS[focus]);
@@ -3213,9 +3530,9 @@ function openSettings(focus) {
     var auth = $('#stUser').value ? decodeURIComponent(encodeURIComponent($('#stUser').value)) + ':' + encodeURIComponent($('#stPass').value) + '@' : '';
     return cur + '://' + auth + h + ':' + pt;
   }
-  // 保存目标文件夹「浏览…」：打开目录选择弹窗，可逐级进入子目录
+  // 保存目标文件夹「浏览…」：在独立二级弹层打开目录选择器，绝不冲掉当前设置弹窗里的表单
   $('#stBrowse').addEventListener('click', function () {
-    openBrowseDir(function (p) { $('#stDir').value = p; });
+    openBrowseDir(function (p) { $('#stDir').value = p; }, $('#stDir').value.trim());
   });
   $('#stTest').addEventListener('click', function () {
     $('#stTestBox').textContent = '正在测试…';
@@ -3235,38 +3552,44 @@ function openSettings(focus) {
   });
 
   $('#stSave').addEventListener('click', function () {
-    api('settings.set', {
+    var payload = {
       proxy: buildProxy(),
       download_dir: $('#stDir').value.trim(),
-      concurrency: Number($('#stConc').value) || 4,
-      segments: Number($('#stSeg').value) || 4,
+      concurrency: Number($('#stConc').value) || 5,
+      segments: Number($('#stSeg').value) || 8,
       on_conflict: $('#stConflict').value,
       rename_by_date: $('#stRename').checked,
       dedupe_content: $('#stDedupe').checked,
       auto_retry: $('#stAutoRetry').checked,
       archive_peer: $('#stArchivePeer').value.trim()
-    }).then(function () {
+    };
+    var aid = ($('#stApiId') && $('#stApiId').value.trim()) || '';
+    var ahash = ($('#stApiHash') && $('#stApiHash').value.trim()) || '';
+    if (aid) payload.api_id = Number(aid) || 0;
+    if (ahash) payload.api_hash = ahash;
+    api('settings.set', payload).then(function () {
       closeDlg(); toast('设置已保存'); refreshStatus();
     }).catch(function (e) { toast(e.message); });
   });
 }
 
-/* ---------------- 保存目标文件夹：浏览选择器 ---------------- */
-function openBrowseDir(onPick) {
+/* ---------------- 保存目标文件夹：二级弹层浏览选择器 ---------------- */
+function openBrowseDir(onPick, initialPath) {
   var state = { path: '', parent: null, dirs: [], roots: [] };
 
   function render() {
     var crumbs = state.path ? state.path.split('/').filter(Boolean) : [];
     var crumbHtml = crumbs.length
-      ? crumbs.map(function (seg, i) {
+      ? '<span class="crumbSep">/</span>' + crumbs.map(function (seg, i) {
           var p = '/' + crumbs.slice(0, i + 1).join('/');
           return '<a class="crumb" data-p="' + esc(p) + '">' + esc(seg) + '</a>';
         }).join('<span class="crumbSep">/</span>')
-      : '';
+      : esc(state.path || '（选择一个目录）');
     var rootSel = state.roots.length > 1
-      ? '<div class="field" style="margin-bottom:8px"><label>选择授权根目录</label><select class="inp" id="brRoot">'
+      ? '<div class="field" style="margin-bottom:8px"><label>切换授权根目录</label><select class="inp" id="brRoot">'
         + state.roots.map(function (r) {
-            return '<option value="' + esc(r) + '"' + (r === state.path ? ' selected' : '') + '>' + esc(r) + '</option>';
+            var isCurRoot = state.path === r || state.path.indexOf(r + '/') === 0;
+            return '<option value="' + esc(r) + '"' + (isCurRoot ? ' selected' : '') + '>' + esc(r) + '</option>';
           }).join('') + '</select></div>'
       : '';
 
@@ -3277,40 +3600,37 @@ function openBrowseDir(onPick) {
     }).join('');
 
     var body = '<div class="browse-head">'
-      + '<button class="btn" id="brUp"' + (state.parent ? '' : ' disabled') + '>↑ 上级</button>'
-      + '<span class="browse-path">' + esc(state.path || '（选择一个目录）') + '</span>'
+      + '<button class="btn" id="brUp" type="button"' + (state.parent ? '' : ' disabled') + '>↑ 上级</button>'
+      + '<span class="browse-path">' + crumbHtml + '</span>'
       + '</div>'
       + rootSel
       + '<div class="browse-list">'
-      + (rows || '<div class="muted" style="padding:12px">没有子文件夹</div>')
+      + (rows || '<div class="muted" style="padding:12px">当前目录下没有子文件夹（可直接点击下方「使用此文件夹」）</div>')
       + '</div>';
 
-    $('#dlgTitle').textContent = '选择保存文件夹';
-    $('#dlgBody').innerHTML = body;
-    $('#dlgFoot').innerHTML = '<button class="btn" onclick="closeDlg()">取消</button>'
-      + '<button class="btn primary" id="brPick">使用此文件夹</button>';
-    $('#dlg').classList.remove('wide');
-    $('#mask').classList.add('show');
+    var subBody = $('#subDlgBody');
+    var subFoot = $('#subDlgFoot');
+    $('#subDlgTitle').textContent = '选择保存文件夹';
+    subBody.innerHTML = body;
+    subFoot.innerHTML = '<button class="btn" type="button" onclick="closeSubDlg()">取消</button>'
+      + '<button class="btn primary" type="button" id="brPick">使用此文件夹</button>';
+    $('#subMask').classList.add('show');
 
-    // 面包屑跳转
-    $$('.crumb').forEach(function (a) {
+    $$('.crumb', subBody).forEach(function (a) {
       a.addEventListener('click', function () { load(a.dataset.p); });
     });
-    // 上级
-    $('#brUp').addEventListener('click', function () { if (state.parent) load(state.parent); });
-    // 根切换
-    if ($('#brRoot')) $('#brRoot').addEventListener('change', function () { load(this.value); });
-    // 子目录进入
-    $$('.browse-row').forEach(function (r) {
+    $('#brUp', subBody).addEventListener('click', function () { if (state.parent) load(state.parent); });
+    var brRoot = $('#brRoot', subBody);
+    if (brRoot) brRoot.addEventListener('change', function () { load(this.value); });
+    $$('.browse-row', subBody).forEach(function (r) {
       r.addEventListener('click', function () { load(r.dataset.p); });
     });
-    // 确认
-    $('#brPick').addEventListener('click', function () {
+    $('#brPick', subFoot).addEventListener('click', function () {
       var p = state.path || (state.roots[0] || '');
       if (!p) { toast('请先选择一个目录'); return; }
-      closeDlg();
+      closeSubDlg();
       if (onPick) onPick(p);
-      toast('已选择：' + p);
+      toast('已选择目录：' + p);
     });
   }
 
@@ -3321,14 +3641,19 @@ function openBrowseDir(onPick) {
     }).catch(function (e) { toast(e.message); });
   }
 
-  // 用当前输入框里已有的路径作为起点
-  var startPath = $('#stDir') ? $('#stDir').value.trim() : '';
+  var startPath = initialPath != null ? initialPath : ($('#stDir') ? $('#stDir').value.trim() : '');
   load(startPath);
 }
 
 function openLogin() {
   var demo = S.status && S.status.demo;
-  openDlg('登录 Telegram', '<div class="seg" id="lgTabs" style="margin-bottom:10px">'
+  var hasCreds = demo || (S.status && S.status.config && (S.status.config.has_creds || S.status.config.api_id));
+  var credBanner = !hasCreds
+    ? '<div class="hint" style="margin-bottom:10px;border-color:#fca5a5;background:#fef2f2;color:#991b1b">'
+      + '<b>尚未配置 API ID / API Hash</b>：首次使用请先填入 Telegram 官方 API 凭据后再扫码登录。'
+      + '<div style="margin-top:6px"><button class="btn sm primary" id="lgGoCreds" type="button">去设置填写 API 凭据 →</button></div></div>'
+    : '';
+  openDlg('登录 Telegram', credBanner + '<div class="seg" id="lgTabs" style="margin-bottom:10px">'
     + '<button data-t="qr" class="on">二维码登录</button><button data-t="phone">手机号登录</button></div>'
     + '<div id="lgQr"><div class="qrwrap">'
     + '<div class="qrbox" id="qrBox"><div class="spin"></div></div>'
@@ -3373,6 +3698,8 @@ function openLogin() {
   });
   var dm = $('#lgDemo');
   if (dm) dm.addEventListener('click', function () { api('login.demo.authorize').then(onLoggedIn); });
+  var gc = $('#lgGoCreds');
+  if (gc) gc.addEventListener('click', function () { closeDlg(); openSettings('creds'); });
 
   var timer = null;
   api('login.qr.start').then(function (d) {
@@ -3640,21 +3967,21 @@ $('#btnTheme').addEventListener('click', function () {
 // 顶栏每一项各管一件事：只有设置按钮是完整设置，其余点进去直接定位到自己那一块
 function openLogsDialog() {
   openDlg('系统操作与异常日志（SQLite 持久化追踪）',
-    '<div class="field-row" style="margin-bottom:8px;align-items:center">'
-    + '<select class="inp" id="lgFilterLevel" style="width:110px">'
+    '<div class="field-row log-filters" style="margin-bottom:8px;align-items:center">'
+    + '<select class="inp" id="lgFilterLevel" style="width:110px;flex:1">'
     + '<option value="all">全部级别</option><option value="info">正常信息</option>'
     + '<option value="ok">成功完成</option><option value="warn">警告</option>'
     + '<option value="error">异常 / 错误</option></select>'
-    + '<select class="inp" id="lgFilterCat" style="width:120px">'
+    + '<select class="inp" id="lgFilterCat" style="width:120px;flex:1">'
     + '<option value="all">全部模块</option><option value="download">下载任务</option>'
     + '<option value="transfer">收藏转存</option><option value="auto">自动化规则</option>'
     + '<option value="sync">云端同步校准</option><option value="message">删除/修改</option>'
     + '<option value="system">系统/网络</option></select>'
-    + '<input class="inp" id="lgFilterQ" placeholder="搜索关键字、对话 ID、报错信息…" style="flex:1">'
+    + '<input class="inp" id="lgFilterQ" placeholder="搜索关键字、对话 ID、报错信息…" style="flex:2">'
     + '<button class="btn sm" id="lgRefreshBtn">' + I.refresh + '<span>刷新</span></button>'
     + '</div>'
-    + '<div class="log-tblWrap"><table class="tbl"><thead><tr>'
-    + '<th style="width:118px">时间</th><th style="width:58px">级别</th><th style="width:68px">模块</th><th>操作与详细日志</th>'
+    + '<div class="log-tblWrap"><table class="tbl log-tbl"><thead><tr>'
+    + '<th style="width:108px">时间</th><th style="width:52px">级别</th><th style="width:58px">模块</th><th>操作与详细日志</th>'
     + '</tr></thead><tbody id="logTableBody"><tr><td colspan="4" class="muted" style="text-align:center;padding:18px">正在读取数据库日志…</td></tr></tbody></table></div>',
     '<button class="btn danger" id="lgClearBtn">' + I.trash + '<span>清空日志</span></button>'
     + '<span style="flex:1"></span><button class="btn primary" onclick="closeDlg()">关闭</button>', true);
@@ -3718,6 +4045,7 @@ $('#tbNet').addEventListener('click', function () { openSettings('proxy'); });
 $('#tbDisk').addEventListener('click', function () { openSettings('dir'); });
 $('#tbConn').addEventListener('click', function () { openConnInfo(); });
 $('#mask').addEventListener('click', function (e) { if (e.target.id === 'mask') closeDlg(); });
+$('#subMask').addEventListener('click', function (e) { if (e.target.id === 'subMask') closeSubDlg(); });
 function markLocalDone(id) {
   var m = msgById(id);
   if (m) m.local = true;
@@ -3736,7 +4064,11 @@ function markLocalDone(id) {
 }
 
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') { closeDlg(); closeViewer(); return; }
+  if (e.key === 'Escape') {
+    var sm = $('#subMask');
+    if (sm && sm.classList.contains('show')) { closeSubDlg(); return; }
+    closeDlg(); closeViewer(); return;
+  }
   var v = $('#viewer');
   if (v && v.classList.contains('show')) {
     var vid = $('#vwBody video, #vwBody audio');

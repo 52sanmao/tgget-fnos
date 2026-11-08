@@ -164,10 +164,29 @@ class Api:
 
     def settings_set(self, p: dict) -> dict:
         changed = {}
-        proxy_touched = False
+        need_reconnect = False
+
+        if "api_id" in p and p["api_id"] not in (None, ""):
+            raw_id = str(p["api_id"]).strip()
+            if raw_id.isdigit() and int(raw_id) > 0:
+                new_id = int(raw_id)
+                if new_id != self.cfg.api_id:
+                    self.cfg.api_id = new_id
+                    changed["api_id"] = self.cfg.api_id
+                    need_reconnect = True
+        if "api_hash" in p and p["api_hash"] not in (None, ""):
+            raw_hash = str(p["api_hash"]).strip()
+            # 忽略前端传回的脱敏占位符（如 ********abcd）
+            if raw_hash and not raw_hash.startswith("*"):
+                if raw_hash != self.cfg.api_hash:
+                    self.cfg.api_hash = raw_hash
+                    changed["api_hash"] = "***"
+                    need_reconnect = True
 
         if "download_dir" in p and p["download_dir"]:
-            self.cfg.download_dir = str(Path(str(p["download_dir"])).expanduser())
+            new_dir = str(Path(str(p["download_dir"]).strip()).expanduser())
+            self.cfg.download_dir = new_dir
+            self.cfg.custom_dir = True
             changed["download_dir"] = self.cfg.download_dir
         if "concurrency" in p and p["concurrency"]:
             self.cfg.concurrency = max(1, min(12, int(p["concurrency"])))
@@ -196,13 +215,15 @@ class Api:
             self.cfg.archive_title = str(p.get("archive_title") or "").strip()
             changed["archive_title"] = self.cfg.archive_title
         if "proxy" in p:
-            self.cfg.proxy = str(p["proxy"] or "").strip()
+            new_proxy = str(p["proxy"] or "").strip()
+            if new_proxy != self.cfg.proxy:
+                need_reconnect = True
+            self.cfg.proxy = new_proxy
             changed["proxy"] = self.cfg.proxy
-            proxy_touched = True
 
         self.cfg.save()
         reconnected = None
-        if proxy_touched and hasattr(self.tg, "reconnect"):
+        if need_reconnect and hasattr(self.tg, "reconnect") and self.cfg.api_id and self.cfg.api_hash:
             try:
                 reconnected = self.tg.reconnect()
             except Exception as exc:
@@ -389,7 +410,8 @@ class Api:
         )
 
     # -- 兼容 --------------------------------------------------------------
-    def config_set(self, p: dict) -> dict:        return self.settings_set(p)
+    def config_set(self, p: dict) -> dict:
+        return self.settings_set(p)
 
 
 def format_bytes(n) -> str:

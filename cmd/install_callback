@@ -1,3 +1,7 @@
 #!/bin/bash
-# 安装文件应用后执行：无额外动作
+# 安装文件部署完成后执行：预建虚拟环境并写入安装向导凭据
+MAIN_SCRIPT="$(dirname "$0")/main"
+if [ -x "$MAIN_SCRIPT" ]; then
+  "$MAIN_SCRIPT" sync_deps || exit 1
+fi
 exit 0
