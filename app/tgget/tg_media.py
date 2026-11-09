@@ -229,10 +229,26 @@ class MediaMixin:
                 media_only=False,
             )
             if gone_ids:
+                # 自己发出的消息云端删了 → 连带删除本地已下载的文件；
+                # 别人发的消息云端删了 → 保留本地文件（保守，避免误删他人内容）。
+                try:
+                    mine = _rt().DB.outgoing_ids(chat_id, gone_ids)
+                except Exception:
+                    mine = []
+                removed_local: list[str] = []
+                if mine:
+                    try:
+                        removed_local = _rt().INDEX.drop_many(chat_id, mine)
+                    except Exception:
+                        removed_local = []
                 self.emit("log", {
                     "level": "info", "category": "sync", "action": "message.reconcile",
                     "peer": chat_id,
-                    "msg": f"云端对比同步：发现 {len(gone_ids)} 条消息已在 Telegram 云端删除，已同步从本地缓存移除",
+                    "msg": (
+                        f"云端对比同步：发现 {len(gone_ids)} 条消息已在 Telegram 云端删除，已同步从本地缓存移除"
+                        + (f"；其中 {len(mine)} 条为自己发送，本地文件已一并删除（{len(removed_local)} 个）"
+                           if mine else "")
+                    ),
                 })
         except Exception:
             pass

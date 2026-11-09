@@ -258,7 +258,10 @@ class DownloaderMixin:
                     if self._is_recoverable_net_err(exc) and net_retries < 3 and not check_cancel():
                         net_retries += 1
                         await asyncio.sleep(min(2.0, 0.5 * net_retries))
-                        await self._force_reconnect(preserve_main=True)
+                        if self._is_session_storm_err(exc) and self._record_storm(exc) >= 3:
+                            await self._hard_reset()
+                        else:
+                            await self._force_reconnect(preserve_main=True)
                         fresh_m = await self._refresh_message(message, idx_key, info["id"])
                         if fresh_m is not None:
                             message = fresh_m
@@ -519,7 +522,10 @@ class DownloaderMixin:
                             net_retries += 1
                             await asyncio.sleep(min(2.0, 0.5 * net_retries))
                             async with ref_lock:
-                                await self._force_reconnect(preserve_main=True)
+                                if self._is_session_storm_err(exc) and self._record_storm(exc) >= 3:
+                                    await self._hard_reset()
+                                else:
+                                    await self._force_reconnect(preserve_main=True)
                                 fresh_m = await self._refresh_message(msg_ref[0], idx_key, info["id"])
                                 if fresh_m is not None:
                                     msg_ref[0] = fresh_m

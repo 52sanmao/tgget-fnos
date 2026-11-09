@@ -340,6 +340,22 @@ class Database:
 
         return self._write(_do)
 
+    def outgoing_ids(self, chat_id: str, ids: list[int]) -> list[int]:
+        """从给定 msg_id 里筛出「自己发出」的那部分（out=1）。
+
+        用于云端对比同步：云端已删的消息里，只有自己发的才需要连带删本地文件，
+        别人发的消息云端删了仍保留本地已下载内容。
+        """
+        if not ids:
+            return []
+        cid = str(chat_id)
+        qmarks = ",".join("?" for _ in ids)
+        rows = self._read(lambda conn: conn.execute(
+            f"SELECT msg_id FROM messages WHERE chat_id=? AND out=1 AND msg_id IN ({qmarks})",
+            (cid, *[int(i) for i in ids]),
+        ).fetchall())
+        return [int(r["msg_id"]) for r in rows]
+
     def reconcile_window(self, chat_id: str, live_ids: list[int], offset_id: int = 0,
                          reached_end: bool = False, media_only: bool = False) -> list[int]:
         """在线拉取消息后与本地缓存比对：把云端已删除、但本地仍显示的消息标为 deleted=1。"""

@@ -93,6 +93,11 @@ class ConnMixin:
         self._meta_cache: dict[tuple, dict] = {}
         self._blob_cache: dict[tuple, tuple] = {}
         self._msg_cache: dict[tuple, tuple[float, Any, dict]] = {}
+        # 连接风暴检测与硬重置熔断状态
+        self._storm_count: int = 0          # 连续命中「会话层错乱」特征的次数
+        self._storm_last_ts: float = 0.0    # 最近一次命中时间戳
+        self._hard_reset_at: float = 0.0    # 最近一次硬重置时间戳（用于冷却）
+        self._hard_reset_lock: Optional[asyncio.Lock] = None
 
     async def _call_rpc(self, coro, timeout: float = 15.0,
                         check_cancel: Optional[Callable[[], bool]] = None):
@@ -340,6 +345,16 @@ class ConnMixin:
         except Exception as exc:
             # 若已有登录缓存但当前网络短暂拥塞超时，保留已登录用户信息并仅更新连接状态，不阻塞前端
             prev = getattr(self, "_state_cache", None)
+            # 连接风暴的「静默」表现：主连接 TCP 看似正常，但 mtproto 会话层错乱，
+            # 表现为 is_user_authorized / get_me 连续超时（TimeoutError）。此时软重连无效，
+            # 需累计风暴并在达到阈值后硬重置重建实例。
+            if isinstance(exc, (TimeoutError, asyncio.TimeoutError)):
+                if self._record_storm(exc) >= 3:
+                    try:
+                        await asyncio.wait_for(self._hard_reset(), timeout=20.0)
+                        return await self._state()
+                    except Exception:
+                        pass
             if prev and prev.get("authorized"):
                 return {**prev, "connected": bool(self.client and self.client.is_connected())}
             if not self.client.is_connected():
@@ -603,7 +618,14 @@ class ConnMixin:
         except (ConnectionError, TimeoutError, asyncio.TimeoutError) as exc:
             if isinstance(exc, ConnectionError) and "disconnect" not in str(exc).lower() and "reset" not in str(exc).lower():
                 raise
-            await self._force_reconnect(preserve_main=False)
+            # 命中会话层错乱特征则累计风暴，达到阈值升级为硬重置
+            if self._is_session_storm_err(exc):
+                if self._record_storm(exc) >= 3:
+                    await self._hard_reset()
+                else:
+                    await self._force_reconnect(preserve_main=False)
+            else:
+                await self._force_reconnect(preserve_main=False)
             return await fn()
 
 
@@ -706,6 +728,117 @@ class ConnMixin:
                 self.client = None
         await self._ensure()
         self._last_rx_ts = time.time()
+
+    # -- 连接风暴检测与硬重置 ----------------------------------------------
+    def _is_session_storm_err(self, exc: BaseException) -> bool:
+        """判断异常是否属于「mtproto 会话层错乱」特征（软重连治不好的那种）。
+
+        典型：wrong session ID / very old message / Too many messages had to be ignored。
+        这类错误来自 _sender 与 _message_box 的内存态错乱，单纯的 disconnect()+connect()
+        无法清除，必须重建整个 TelegramClient 实例才能归零。
+        """
+        msg = str(exc).lower()
+        return any(k in msg for k in (
+            "wrong session id",
+            "very old message",
+            "too many messages",
+            "security error",
+            "ignored consecutively",
+        ))
+
+    def _record_storm(self, exc: Optional[BaseException] = None) -> int:
+        """记录一次连接风暴命中，返回当前连续命中次数。
+
+        策略：在短时间内（60s 窗口内）连续命中会话层错乱特征，计数递增；
+        超过阈值则触发硬重置。命中风暴后进入冷却，避免风暴期间反复硬重置。
+        """
+        now = time.time()
+        # 冷却窗口内（硬重置后 30s）不再累计，避免刚重置又立刻误判风暴
+        if now - float(getattr(self, "_hard_reset_at", 0.0) or 0.0) < 30.0:
+            return 0
+        last = float(getattr(self, "_storm_last_ts", 0.0) or 0.0)
+        if exc is not None and self._is_session_storm_err(exc):
+            # 60s 窗口内的连续命中才累加，超过窗口则从头计
+            if now - last <= 60.0:
+                self._storm_count += 1
+            else:
+                self._storm_count = 1
+        elif now - last > 60.0:
+            # 长时间无风暴，计数自然衰减
+            self._storm_count = 0
+        self._storm_last_ts = now
+        return self._storm_count
+
+    async def _hard_reset(self) -> bool:
+        """硬重置：彻底重建主 TelegramClient 实例，清掉 _sender/_message_box 会话层错乱状态。
+
+        与 _force_reconnect（同一实例上 disconnect+connect）不同，这里：
+        1. 断开并丢弃旧实例（含错乱的 _sender / _message_box / _connection）；
+        2. 用 session 文件（或 session_string）new 一个全新实例，内部状态归零；
+        3. 重新 connect()。
+
+        返回是否成功。session 文件本身不动，登录态（auth_key）保留，无需重新扫码。
+        """
+        lock = getattr(self, "_hard_reset_lock", None)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._hard_reset_lock = lock
+        async with lock:
+            # 1. 清理辅助下载连接池（都是内存 StringSession，直接丢弃）
+            pool_lock = getattr(self, "_dl_pool_lock", None)
+            if pool_lock is not None:
+                async with pool_lock:
+                    dl_clients = getattr(self, "_dl_clients", None)
+                    if dl_clients:
+                        for c in dl_clients:
+                            try:
+                                await asyncio.wait_for(c.disconnect(), timeout=2.0)
+                            except Exception:
+                                pass
+                        dl_clients.clear()
+
+            # 2. 丢弃旧主实例
+            async with self._get_conn_lock():
+                old = self.client
+                self.client = None
+                if old is not None:
+                    try:
+                        await asyncio.wait_for(old.disconnect(), timeout=4.0)
+                    except Exception:
+                        pass
+                    # 显式释放内部引用，帮助 GC 尽快回收错乱状态
+                    for attr in ("_sender", "_connection", "_message_box"):
+                        try:
+                            setattr(old, attr, None)
+                        except Exception:
+                            pass
+
+            # 3. 重建全新实例（复用 _ensure 的构建逻辑，但强制跳过旧实例缓存）
+            try:
+                await self._ensure()
+            except Exception:
+                self._hard_reset_at = time.time()
+                return False
+            self._hard_reset_at = time.time()
+            self._storm_count = 0
+            self._storm_last_ts = 0.0
+            self._last_rx_ts = time.time()
+            self.emit("log", {
+                "level": "info", "category": "conn",
+                "msg": "检测到连接风暴，已硬重置 Telegram 连接（重建实例）",
+            })
+            return True
+
+    async def _force_reconnect_with_storm_guard(self, preserve_main: bool = False) -> None:
+        """带风暴熔断的重连：优先走轻量软重连；连续命中会话层错乱时升级为硬重置。
+
+        调用方（下载/转存等长连接任务）在捕获到网络错误后调用本方法替代裸 _force_reconnect，
+        即可在「正常抖动」与「连接风暴」之间自动切换，避免无限软重试的死循环。
+        """
+        if self._record_storm() >= 3:
+            await self._hard_reset()
+            return
+        await self._force_reconnect(preserve_main=preserve_main)
 
     # -- 工具 --------------------------------------------------------------
     def close(self) -> None:
