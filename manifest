@@ -1,5 +1,5 @@
 appname=tgget
-version=0.9.6
+version=0.9.7
 display_name=Telegram 下载器
 desc=扫码登录 Telegram，批量下载/转发/归档文件到 NAS 本地，断点续传、多路分片提速，数据全在本机。
 source=thirdparty
@@ -20,4 +20,4 @@ checkport=true
 ctl_stop=true
 disable_authorization_path=false
 
-changelog=v0.9.6：优化飞牛 fnOS 生命周期与目录配置保留机制，全面升级手机端看图/视频手势体验与移动端响应式交互设计。
+changelog=v0.9.7：优化飞牛 fnOS 生命周期与目录配置保留机制，全面升级手机端看图/视频手势体验与移动端响应式交互设计。
