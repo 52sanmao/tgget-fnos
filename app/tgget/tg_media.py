@@ -56,7 +56,8 @@ class MediaMixin:
                 return _rt().DB.list_chats(limit, query)
             except Exception:
                 return []
-        rows = self.loop.call(self._retry_disconnected(lambda: self._dialogs(limit, query)), timeout=25)
+        rows = self.loop.call(self._retry_disconnected(lambda: self._dialogs(limit, query)), timeout=25,
+                              cancel_on_timeout=True)
         self._last_rx_ts = time.time()
         try:
             _rt().DB.upsert_chats(rows)  # 顺手存一份，下次断网也能看到列表
@@ -143,6 +144,7 @@ class MediaMixin:
         res = self.loop.call(
             self._retry_disconnected(lambda: self._messages(peer, limit, offset_id, media_only)),
             timeout=25,
+            cancel_on_timeout=True,
         )
         self._last_rx_ts = time.time()
         return res
@@ -298,7 +300,8 @@ class MediaMixin:
         if hit:
             return hit
         try:
-            return self.loop.call(self._retry_disconnected(lambda: self._thumb(peer, msg_id)), timeout=12)
+            return self.loop.call(self._retry_disconnected(lambda: self._thumb(peer, msg_id)),
+                                  timeout=12, cancel_on_timeout=True)
         except Exception:
             return b""
 
@@ -352,7 +355,8 @@ class MediaMixin:
                 except OSError:
                     pass
         try:
-            return self.loop.call(self._retry_disconnected(lambda: self._avatar(peer)), timeout=12)
+            return self.loop.call(self._retry_disconnected(lambda: self._avatar(peer)),
+                                  timeout=12, cancel_on_timeout=True)
         except Exception:
             return b""
 
@@ -441,7 +445,8 @@ class MediaMixin:
 
     def media_meta(self, peer: str, msg_id: int) -> dict:
         """一条消息的媒体元信息（大小 / MIME / 文件名），在线播放前先问一次。"""
-        return self.loop.call(self._retry_disconnected(lambda: self._media_meta(peer, msg_id)))
+        return self.loop.call(self._retry_disconnected(lambda: self._media_meta(peer, msg_id)),
+                              timeout=15, cancel_on_timeout=True)
 
     async def _media_meta(self, peer: str, msg_id: int) -> dict:
         key = (str(peer), int(msg_id))
@@ -460,7 +465,8 @@ class MediaMixin:
 
     def media_bytes(self, peer: str, msg_id: int) -> tuple[bytes, str]:
         """把整条图片/贴纸读回并落盘缓存：二次查看和前后翻图零延迟，断网也能看已浏览过的原图。"""
-        return self.loop.call(self._retry_disconnected(lambda: self._media_bytes(peer, msg_id)))
+        return self.loop.call(self._retry_disconnected(lambda: self._media_bytes(peer, msg_id)),
+                              timeout=30, cancel_on_timeout=True)
 
     async def _media_bytes(self, peer: str, msg_id: int) -> tuple[bytes, str]:
         import io

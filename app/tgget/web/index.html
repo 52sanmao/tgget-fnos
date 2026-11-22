@@ -673,7 +673,7 @@ const S = {
   status: null,
   dialogs: [], dlgLoading: false, dlgPromise: null, dlgQuery: '', dlgCached: false,
   peer: null, peerTitle: '', peerKind: '', msgs: [], sel: [], mediaLoading: false,
-  viewMode: 'media', hasMore: false, nextOffset: 0, loadingMore: false,
+  viewMode: 'media', hasMore: false, nextOffset: 0, loadingMore: false, _loadSeq: 0,
   cacheHit: false, offline: false,
   pageSize: 60, showPanel: true, zoom: 1, jumpTo: null,
   jobs: [], jobSel: null, jobFilter: 'all', jobQuery: '', taskView: 'new',
@@ -1111,7 +1111,18 @@ function loadMore() {
   var anchorH = body ? body.scrollHeight : 0;
   var base = { peer: peer, limit: S.pageSize, media_only: mode === 'media', offset_id: S.nextOffset };
 
+  // 弱网/半开连接下，后端一次回源最坏要等 25s 超时 + 重连重试，若请求迟迟不返回，
+  // 这个定时器兜底释放 loadingMore 锁，避免「一直加载中」卡死、再也无法上滑触发。
+  var loadSeq = ++S._loadSeq;
+  var unstick = setTimeout(function () {
+    if (S._loadSeq === loadSeq && S.loadingMore && String(peer) === String(S.peer)) {
+      S.loadingMore = false;
+      paintMoreHint();
+    }
+  }, 30000);
+
   function merge(d, fromLocal) {
+    clearTimeout(unstick);
     if (String(peer) !== String(S.peer) || mode !== S.viewMode) return 0;
     var have = {};
     S.msgs.forEach(function (m) { have[m.id] = 1; });
@@ -1146,6 +1157,7 @@ function loadMore() {
         return merge(d, true);
       });
     }).catch(function (e) {
+      clearTimeout(unstick);
       S.loadingMore = false;
       if (!S.cacheHit) toast('加载更多失败：' + e.message);
       paintMoreHint();
@@ -1155,6 +1167,7 @@ function loadMore() {
   return api('message.list', Object.assign({ source: 'local' }, base)).then(function (d) {
     return merge(d, true);
   }).catch(function (e) {
+    clearTimeout(unstick);
     S.loadingMore = false;
     if (!S.cacheHit) toast('加载更多失败：' + e.message);
     paintMoreHint();
@@ -1426,7 +1439,7 @@ function cardHtml(m, gidx) {
   return '<div class="card' + (on ? ' on' : '') + '" data-id="' + m.id + '"' + grp + '>'
     + '<div class="thumb" data-play="1" style="color:' + k.c + '">' + ic
     + (hasThumb(m.kind)
-      ? '<img loading="lazy" decoding="async" alt="" src="' + thumbUrl(S.peer, m.id) + '" onerror="this.remove()">'
+      ? '<img loading="lazy" decoding="async" alt="" src="' + thumbUrl(S.peer, m.id) + '" onerror="thumbRetry(this)">'
       : '')
     + (play ? '<span class="play">' + I.play + '</span>' : '')
     + (m.duration ? '<span class="dur">' + durStr(m.duration) + '</span>' : '')
@@ -1828,7 +1841,7 @@ function albumFigure(g) {
     if (!p) return;
     html += '<div class="gp" data-play="1" data-id="' + m.id + '" style="left:' + p.x + 'px;top:' + p.y
       + 'px;width:' + p.w + 'px;height:' + p.h + 'px;border-radius:' + gaRadius(p.sides, hasCap) + '">'
-      + (hasThumb(m.kind) ? '<img loading="lazy" alt="" src="' + thumbUrl(S.peer, m.id) + '" onerror="this.remove()">' : '')
+      + (hasThumb(m.kind) ? '<img loading="lazy" alt="" src="' + thumbUrl(S.peer, m.id) + '" onerror="thumbRetry(this)">' : '')
       + iconFor(m.kind)
       + (overlayKind(m.kind) ? '<span class="pl">' + I.play + '</span>' : '')
       + (m.duration ? '<span class="dur">' + durStr(m.duration) + '</span>' : '')
@@ -1869,7 +1882,7 @@ function albumBubble(g, grouped) {
 function visualFigure(m) {
   var play = overlayKind(m.kind);
   return '<div class="mfig" data-play="1" data-id="' + m.id + '">'
-    + (hasThumb(m.kind) ? '<img loading="lazy" alt="" src="' + thumbUrl(S.peer, m.id) + '" onerror="this.remove()">' : '')
+    + (hasThumb(m.kind) ? '<img loading="lazy" alt="" src="' + thumbUrl(S.peer, m.id) + '" onerror="thumbRetry(this)">' : '')
     + iconFor(m.kind)
     + (play ? '<span class="pl"><span>' + I.play + '</span></span>' : '')
     + (m.duration ? '<span class="dur">' + durStr(m.duration) + '</span>' : '')
@@ -2381,7 +2394,7 @@ function paintViewerStrip(list, activeId) {
     var on = Number(mid) === Number(activeId);
     return '<div class="st-it' + (on ? ' on' : '') + '" data-stid="' + mid + '" title="' + esc(item.filename || ('#' + mid)) + '">'
       + iconFor(item.kind)
-      + (hasThumb(item.kind) ? '<img loading="lazy" alt="" src="' + thumbUrl(S.peer, mid) + '" onerror="this.remove()">' : '')
+      + (hasThumb(item.kind) ? '<img loading="lazy" alt="" src="' + thumbUrl(S.peer, mid) + '" onerror="thumbRetry(this)">' : '')
       + '</div>';
   }).join('');
   $$('[data-stid]', strip).forEach(function (el) {
@@ -2411,6 +2424,24 @@ function hasThumb(kind) {
 
 function thumbUrl(peer, id) {
   return '/api/media/thumb?peer=' + encodeURIComponent(peer) + '&id=' + encodeURIComponent(id);
+}
+
+// 缩略图加载失败时的兜底：不清空 DOM（保留占位图标），短延迟后重试一次。
+// 弱网/事件循环被占用时缩略图请求容易超时，直接 remove 会造成整屏空白且永不补回。
+function thumbRetry(img) {
+  if (!img || img._tgThumbRetried) return;
+  img._tgThumbRetried = true;
+  img.style.opacity = '0';
+  setTimeout(function () {
+    if (!img.isConnected) return;
+    var src = img.dataset.tsrc || img.getAttribute('src');
+    if (!src) return;
+    img.dataset.tsrc = src;
+    // 加一个随机查询参数绕开浏览器对该 URL 的失败缓存
+    img.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + '_r=' + Date.now();
+    img.onload = function () { img.style.opacity = ''; };
+    img.onerror = function () { img.remove(); };  // 二次失败才彻底放弃
+  }, 1500);
 }
 
 /* ---------------- 我的收藏：一键转存归档（下载上传+移动文件+删云端）与一键丢弃 ---------------- */

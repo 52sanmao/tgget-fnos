@@ -59,8 +59,21 @@ class LoopThread:
         self._started.wait(5)
         return self
 
-    def call(self, coro, timeout: float = 120):
-        return asyncio.run_coroutine_threadsafe(coro, self.loop).result(timeout)
+    def call(self, coro, timeout: float = 120, cancel_on_timeout: bool = False):
+        """把协程投递到后台事件循环并阻塞等待结果。
+
+        `cancel_on_timeout=True` 时，超时后主动取消底层 asyncio 任务，避免「幽灵协程」
+        继续占用事件循环、拖慢后续所有请求（缩略图/消息拉取排队卡死的根因之一）。
+        只用于幂等、可安全放弃的只读查询（messages/thumb/avatar/dialogs/media_meta 等），
+        下载、转发、发送这类有副作用的操作必须保持 False。
+        """
+        fut = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        try:
+            return fut.result(timeout)
+        except Exception:
+            if cancel_on_timeout:
+                fut.cancel()
+            raise
 
     def submit(self, coro):
         return asyncio.run_coroutine_threadsafe(coro, self.loop)
